@@ -1,0 +1,616 @@
+# Docker & Kubernetes Introduction
+
+## Syllabus
+
+### Docker
+- Introduction to Docker  
+- Containerization vs Virtualization  
+- Docker Installation & Architecture  
+- Docker Adhoc Commands  
+- Dockerfile & Its Keywords  
+- Docker Images & Image Creation  
+- Docker Containers  
+- Docker Networks  
+- Docker Volumes  
+- Docker Registries (Docker Hub, ECR, Nexus)  
+- Docker Compose  
+
+### Kubernetes
+- Introduction to Kubernetes  
+- Kubernetes Architecture  
+- Kubernetes Cluster (Self-Managed) Setup Using Kubeadm  
+- Kubernetes Namespaces  
+- Kubernetes Objects:  
+  - Pods  
+  - Replication Controller  
+  - Replica Set  
+  - Daemon Set  
+  - Deployment  
+  - Rolling Update & Recreate Strategies  
+  - Stateful Sets  
+  - Services  
+  - Persistent Volumes & Persistent Volume Claims  
+  - Dynamic Volumes  
+  - ConfigMaps & Secrets  
+  - Horizontal Pod Autoscaler (HPA) & Metrics Server  
+  - Liveness & Readiness Probes  
+- **Scheduling & Maintenance:**  
+  - Node Selector  
+  - Node Affinity  
+  - Pod Affinity & Anti-Affinity  
+  - Taints & Tolerations  
+  - Resource Quotas & Limit Ranges  
+  - Network Policies  
+- **EKS Kubernetes Cluster Setup**  
+- Load Balancer Service  
+- Ingress Controller & Resource  
+- Kubernetes RBAC (Role-Based Access Control)  
+- Deploying Applications using Jenkins (CI/CD)  
+- Helm Package Manager  
+- Monitoring Kubernetes with Prometheus & Grafana  
+
+---
+
+What is Docker?
+Docker is a containerization platform that allows developers to package applications and their dependencies into a standardized unit called a **container**. 
+This ensures consistency across different computing environments and improves efficiency in application deployment and scaling.  
+Similar Tools to Docker:
+- **Podman**  
+- **Rkt (Rocket)**  
+- **LXC (Linux Containers)**  
+- **Singularity**  
+
+Docker Editions:
+1. **Community Edition (CE):** Open-source and free to use.  
+2. **Enterprise Edition (EE):** Commercial version with advanced security and support features.  
+
+**Vendor:** Docker Inc.  
+**Type:** Containerization  
+
+Related Technologies:
+- **SCM Tools:** Git  
+- **Build Tools:** Ant, Maven, Gradle  
+- **CI/CD Tools:** Jenkins, Bamboo, Travis CI  
+- **Containerization Tools:** Docker, Podman, Rkt  
+
+**Cross-Platform:** Docker is supported on Linux, Windows, and macOS.  
+
+---
+
+Installing Docker
+**Official Website:** [https://www.docker.com/](https://www.docker.com/)  
+**Documentation:** [https://docs.docker.com/](https://docs.docker.com/)  
+Installation Steps (Ubuntu EC2 Instance):
+1. **Create an EC2 instance** (Ubuntu-based)  
+2. **Connect to the server** using SSH  
+3. **Install Docker using one of the following methods:**  
+
+Method 1: Using Docker’s official script  
+```sh
+sudo apt update -y
+sudo curl -fsSL https://get.docker.com -o install-docker.sh
+sudo sh install-docker.sh
+```
+Method 2: Installing from Ubuntu Repository  
+```sh
+sudo apt update -y
+sudo apt install docker.io -y
+```
+Method 3: Running Docker’s install command directly  
+```sh
+sudo apt update -y
+sudo curl -fsSL https://get.docker.com | /bin/bash
+```
+
+4. **Verify installation**  
+```sh
+docker -v
+```
+
+5. **Check Docker service status**  
+```sh
+ps -ef | grep -i "dockerd"
+sudo service docker status
+```
+
+6. **Fix Docker permission issues**  
+```sh
+sudo usermod -aG docker ubuntu
+```
+**(After this, log out and log back in for changes to take effect.)**  
+
+7. **Confirm that Docker runs without sudo**  
+```sh
+docker ps
+```
+
+---
+
+## Docker Architecture
+
+![Docker Architecture](../images/docker-architecture.png)
+
+1. Docker Engine
+**Docker Engine** is the core component responsible for building, running, and managing containers. It consists of:  
+- **Docker Daemon (dockerd):** Runs in the background, manages containers, images, and networking.  
+- **Docker API:** Enables interaction between the daemon and the Docker CLI or other programs.  
+
+2. Docker CLI (Command-Line Interface)
+The CLI allows users to interact with Docker. Common commands include:  
+```sh
+docker run
+docker build
+docker ps
+docker images
+```
+
+3. Docker Images
+Docker images are the templates used to create containers. They are:  
+- **Immutable** (cannot be modified once built)  
+- **Layered** (built from multiple layers for efficiency)  
+- **Version-controlled**  
+
+4. Docker Containers
+Containers are lightweight, portable, and run applications in an isolated environment.  
+- Share the host OS kernel but have separate filesystem, processes, and network.  
+- Created from Docker images using `docker run`.  
+
+5. Docker Registry
+A registry is a centralized storage system for Docker images.  
+- **Public Registry:** Docker Hub (default)  
+- **Private Registries:** Nexus, JFrog Artifactory, AWS ECR  
+
+---
+
+Managed Docker Registries
+
+- **AWS ECR (Elastic Container Registry)** – Amazon’s managed registry for AWS  
+- **Azure ACR (Azure Container Registry)** – Microsoft Azure’s container registry  
+- **GCP GCR (Google Container Registry)** – Google Cloud’s registry  
+
+Docker Repository
+A Docker **repository** is a collection of images with the same name but different tags (versions).  
+
+Next Steps
+- Learn how to create and manage Docker images  
+- Deploy containers in real-world applications  
+- Use Kubernetes to orchestrate Docker containers  
+- Implement CI/CD pipelines with Docker and Kubernetes  
+
+---
+
+
+
+
+
+
+
+NOTES FROM BLOG:
+---------------
+
+Docker is an open-source containerization platform.
+It allows you to package an application along with all its dependencies into a single, isolated
+unit called a container.
+With Docker, developers can easily build, run, and manage applications across different
+environments without worrying about compatibility issues.
+Unlike virtual machines, Docker containers share the host system’s kernel, making
+them lightweight, portable, and faster.
+This makes Docker ideal for running applications consistently on any system — whether it’s your
+laptop, a server, or the cloud.
+
+What is a VM (Virtual Machine)?
+A Virtual Machine (VM) is software that behaves like a separate physical computer.
+It runs its own operating system (OS) and applications, but inside a host machine using
+a hypervisor like VMware, Oracle VirtualBox, or Microsoft Hyper-V.
+Each VM gets its own dedicated memory (RAM), CPU, and storage, even though it’s all coming
+from the same physical system.
+Virtual Machine (VM) vs Docker Memory Usage (with 16GB Example)
+Using Virtual Machines (VMs):
+You have 3 VMs:
+• VM1 – allocated 6 GB (actually using 4 GB, 2 GB free inside VM)
+• VM2 – allocated 4 GB (using 3 GB, 1 GB free)
+• VM3 – allocated 6 GB (using 2 GB, 4 GB free)
+
+Total allocated = 6 + 4 + 6 = 16 GB
+Actually used = 4 + 3 + 2 = 9 GB
+Free (unused inside VMs) = 7 GB
+
+Problem with VMs:
+Even though 7 GB is free inside the VMs, the hypervisor has already reserved all 16 GB.
+That means, from the host system’s perspective, the full memory is occupied.
+You can’t launch another VM unless you shut down or reduce memory from existing VMs.
+That 7 GB free is not shareable outside its VM.
+
+Using Docker Containers:
+Let’s say you run 3 containers with memory limits:
+• Container1 – max 6 GB, but currently using 4 GB
+• Container2 – max 4 GB, using 3 GB
+• Container3 – max 6 GB, using 2 GB
+Total memory in use = 4 + 3 + 2 = 9 GB
+Free memory on host = 16 GB - 9 GB = 7 GB
+Advantage with Docker:
+The remaining 7 GB is fully available to launch more containers or for other system needs.
+Memory is dynamically shared — what one container doesn’t use, others can.
+• In Docker, free memory is still usable, and you can start more containers.
+• In VMs, once memory is reserved, even unused RAM can’t be shared.
+
+Why the Shift from VMs to Docker?
+Software development has rapidly evolved over the past decade.
+One major shift has been moving from Virtual Machines (VMs) to Docker containers for
+deploying applications. Why?
+• Faster development & deployment cycles
+• Smaller, more efficient resource usage
+• Solving the “it works on my machine” problem
+• Easier version and dependency management
+Let’s break down the “Before Docker” vs “After Docker” deployment and explore why Docker
+became a game-changer.
+Before Docker: Traditional VM-Based Deployment
+How It Worked (Old Way)
+• Developers write code on their local machines (Dev).
+• Code is manually deployed to QA, then Staging, then Production.
+• Each environment has different configurations.
+• Applications run inside Virtual Machines (VMs) like VirtualBox or VMware.
+• VMs contain full operating systems, making them heavy and slow.
+
+Common Problems
+• Version mismatch: Java 17 on Dev, Java 8 on Prod → app crashes.
+• Heavy resource usage: VMs can take up several GBs of RAM and disk.
+• Slow startup times: VMs can take minutes to boot up.
+• Difficult to reproduce environments: Each stage needs manual setup.
+• Dependency conflicts: Apps can overwrite each other’s ports or system files.
+
+After Docker: Modern Containerized Deployment
+How It Works (New Way)
+• Developers write code and a Dockerfile that defines the app’s environment.
+• A Docker image is built — self-contained and version-controlled.
+• The same image is deployed to Dev, QA, Staging, and Production.
+• Apps run inside Docker containers, which are lightweight and isolated.
+Key Benefits
+• Consistent environments: One image works the same everywhere.
+• Lightweight & fast: Containers use less RAM and start in seconds.
+• No version issues: You choose exactly which Java/Python/MySQL version is used.
+• Better isolation: No more conflicts between apps.
+• Easier CI/CD: Build the image once, deploy it anywhere — automatically.
+
+Does Docker Handle Versions Automatically?
+No, it doesn’t. But it gives you full control.
+What Docker does not do:
+• It doesn’t automatically pick versions for you.
+• It won’t fix version problems by itself.
+What Docker does give you:
+You can set the version yourself in the Dockerfile.
+
+FROM openjdk:17
+This means: “Use Java 17 for this app — always.”
+The best part?
+You don’t need to install Java or Python on your server or laptop.
+Docker will pull the correct version inside the container.
+You can even run Java 8, Java 11, and Java 17 apps at the same time — no problem, no conflict.
+Same image everywhere:
+• You build the Docker image one time.
+• Then use the same image in Dev, QA, and Production.
+• This keeps everything consistent and simple.
+
+Conclusion:
+• Docker doesn’t magically fix version issues.
+• But if you set things correctly, Docker makes sure your app runs exactly the same
+  everywhere.
+• No more crashes.
+• No more “it worked on my laptop but not in Prod.”
+• No need to reinstall Java or Python again and again.
+
+
+
+1. Similar tools like Docker
+Docker is not the only containerization tool.
+Podman — Docker-compatible container tool from Red Hat; can run without a central daemon and can run rootless.
+rkt (Rocket) — an older container runtime from CoreOS; now deprecated.
+containerd — a container runtime used by Docker and also available as a standalone CNCF project.
+LXC/LXD — system containers, somewhat similar to lightweight VMs.
+CRI-O — a container runtime designed for Kubernetes and based on OCI standards.
+Kata Containers — combines containers with stronger VM-like isolation.
+Important idea
+These tools are alternatives or related technologies in the container ecosystem. Docker is the most commonly encountered one when learning containers.
+
+2. Docker Editions
+The document says Docker has two main editions:
+Community Edition (CE)
+This is described as the free/open-source version intended for:
+Individual developers
+Small teams
+Learning and development
+Enterprise Edition (EE)
+Designed for businesses and provides things such as:
+Advanced features
+Security options
+Official support
+
+Note: Docker's product naming has changed over time, so this CE/EE terminology is from older Docker documentation.
+
+3. Vendor and Type
+The document identifies:
+Vendor: Docker Inc.
+Type: Containerization platform
+Use case: Packaging and running applications inside lightweight, portable containers.
+In simple words:
+Docker packages your application + its required environment into a container so that you can run it consistently on different machines.
+
+4. Docker Installation on EC2 — Ubuntu
+The document then starts showing how to install Docker on an Ubuntu EC2 instance.
+Step 1: Launch EC2
+It suggests:
+Ubuntu 20.04 or later
+An instance such as t2.micro for testing
+Connect to the EC2 instance using SSH/EC2 Connect.
+Once connected, you are working inside the Ubuntu server's terminal.
+
+5. Step 2: Update package lists
+First:
+sudo apt update -y
+What does this do?
+apt is Ubuntu's package management tool.
+update means:
+"Go to the configured software repositories and find out what packages and versions are available."
+-y automatically answers yes to prompts where applicable.
+Important
+apt update does not normally install or upgrade the packages themselves.
+It mainly refreshes the information about available packages.
+
+6. Method 1 — Install Docker using Ubuntu's package
+The document shows:
+sudo apt install docker.io -y
+Here:
+sudo → run with administrator privileges
+apt → Ubuntu package manager
+install → install a package
+docker.io → Ubuntu's Docker package
+-y → automatically answer yes
+After installation, you can check:
+docker -v
+or:
+docker info
+
+7. Method 2 — Docker's official installation script
+The document shows:
+sudo curl -fsSL https://get.docker.com -o install-docker.sh
+sudo sh install-docker.sh
+The first command downloads Docker's installation script.
+The second command executes that script.
+Breaking down the first command
+sudo curl -fsSL https://get.docker.com -o install-docker.sh
+curl → downloads data from a URL
+-f → fail if the HTTP request fails
+-s → silent mode
+-S → show errors even in silent mode
+-L → follow redirects
+-o install-docker.sh → save the downloaded content as install-docker.sh
+Then:
+sudo sh install-docker.sh
+means:
+Run the downloaded shell script with administrator privileges.
+
+8. Method 3 — One-line installation
+The document also shows:
+sudo curl -fsSL https://get.docker.com | /bin/bash
+This combines downloading and executing the script.
+The important concept is:
+Internet
+   ↓
+get.docker.com
+   ↓
+curl downloads script
+   ↓
+|
+   ↓
+/bin/bash executes script
+   ↓
+Docker installed
+
+For learning, it's important to understand that piping a downloaded script directly into Bash means you're executing code obtained from the internet, 
+so in real production environments you should understand and trust the source before doing this.
+
+9. Step 4 — Verify Docker installation
+The document shows:
+docker -v
+This checks the Docker version.
+For example:
+Docker version 26.1.3
+Then:
+docker info
+This provides detailed information about the Docker installation.
+However, the screenshot shows:
+permission denied while trying to connect to the Docker daemon socket
+This is an important point.
+Why does this happen?
+Docker has two major pieces to understand:
+
+docker commanD
+     ↓
+Docker daemon
+     ↓
+Containers
+The Docker daemon (dockerd) normally runs with root-level privileges.
+The normal Ubuntu user may not initially have permission to communicate with it through:
+/var/run/docker.sock
+Therefore:
+docker info
+may produce:
+permission denied
+even though Docker is correctly installed.
+
+10. Step 5 — Check Docker service
+The document shows:
+ps -ef | grep -i "dockerd"
+This searches the running processes for dockerd.
+You can also use:
+sudo service docker status
+If you see:
+
+Active: active (running)
+
+it means:
+The Docker daemon/service is currently running.
+So there are two different things:
+Docker installed
+You can check:
+docker -v
+Docker service running
+You can check:
+sudo service docker status
+Both are useful checks.
+
+11. Step 6 — Add the current user to the Docker group
+The document shows:
+sudo usermod -aG docker ubuntu
+This is intended to allow the ubuntu user to execute Docker commands without typing sudo every time.
+Breaking it down
+sudo
+ ↓
+administrator privileges
+usermod
+ ↓
+modify a user
+
+-a
+ ↓
+append
+
+-G docker
+ ↓
+add user to docker group
+
+ubuntu
+ ↓
+the user being modified
+
+So:
+sudo usermod -aG docker ubuntu
+means:
+Add the ubuntu user to the docker group without removing the user's existing supplementary groups.
+Why is the Docker group important?
+Before adding the user:
+ubuntu$ docker info
+        ↓
+Permission denied
+
+After adding the user to the Docker group:
+ubuntu$ docker info
+        ↓
+Docker daemon
+        ↓
+Works without sudo
+
+You may need to log out and log back in (or start a new session) for the new group membership to take effect.
+Then you can use:
+docker ps
+instead of:
+sudo docker ps
+One important security point
+Membership in the docker group effectively provides very powerful control over the Docker daemon and therefore the host. So it should not be treated as a harmless ordinary group.
+
+
+Step 7: Run Docker commands without sudo
+Earlier, you ran:
+sudo usermod -aG docker ubuntu
+This added the ubuntu user to the docker group.
+But the change does not immediately apply to your current terminal session.
+That's why the note at the top says:
+You must log out and log back in (or restart the session).
+Why?
+When you logged in, Linux created your session with a particular set of group memberships.
+For example, before:
+ubuntu
+ ├── ubuntu group
+ └── other groups
+After running:
+sudo usermod -aG docker ubuntu
+the user's account is changed to:
+
+ubuntu
+ ├── ubuntu group
+ ├── other groups
+ └── docker group  ← added
+
+But your already-open terminal session doesn't automatically reload those groups.
+So you log out and log back in.
+Then the new session knows:
+ubuntu → member of docker group
+Now test these commands
+1. docker ps
+docker ps
+This displays the currently running containers.
+If you haven't started any containers yet, you may simply see an empty list:
+CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES
+
+That's not an error. It means Docker is working but no containers are currently running.
+
+2. docker info
+docker info
+This gives detailed information about the Docker environment.
+It communicates with the Docker daemon.
+Earlier you might have received:
+permission denied
+
+because your user didn't have permission to access the Docker socket.
+
+After joining the Docker group and starting a new session, it should work without sudo.
+
+3. docker images
+docker images
+This displays Docker images stored locally.
+
+For example:
+
+REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+
+Again, an empty list is perfectly normal if you haven't downloaded/built any images yet.
+The complete story
+Think of it like this:
+
+                    EC2 Ubuntu
+                       │
+                       ▼
+                 Docker daemon
+                   (dockerd)
+                       │
+              /var/run/docker.sock
+                       │
+                       ▼
+                Docker commands
+                  docker ps
+                 docker info
+                docker images
+
+Initially:
+
+ubuntu user
+     │
+     └── ❌ No permission to access Docker socket
+
+So:
+docker info
+gives:
+permission denied
+Then you run:
+sudo usermod -aG docker ubuntu
+
+Now:
+
+ubuntu user
+     │
+     └── docker group
+             │
+             ▼
+       Docker socket
+             │
+             ▼
+       Docker daemon
+
+After logging in again:
+docker ps
+docker info
+docker images
+can be executed without sudo.
+One thing to remember
+docker group membership is what allows the normal ubuntu user to interact with the Docker daemon without typing sudo.
+
