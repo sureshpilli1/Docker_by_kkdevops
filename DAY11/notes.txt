@@ -1,1 +1,614 @@
 https://gettingstartedwithdocker.hashnode.dev/building-cicd-pipeline-jenkins-and-sonarqube-docker-image-on-ci-server-remote-docker-deployment-via-cd-server
+
+
+
+THE ABOVE NOTES IS COPIED BELOW:
+--------------------------------
+
+
+
+Building CI/CD Pipeline: Jenkins & SonarQube Docker Image on CI Server, Remote Docker Deployment via CD Server
+Updated
+June 8, 2025
+•
+14 min read
+•
+View as Markdown
+Kandlagunta Venkata Siva Niranjan Reddy
+Kandlagunta Venkata Siva Niranjan Reddy
+On this page
+
+1.Launch Ubuntu Server (t2.large)
+2. Launching a Jenkins CI Server
+3. Installing Docker in Jenkins and Configuring Permissions
+4.Create a Sonarqube Container
+Install these plugins in Jenkins:
+5. Creating a Jenkins Job (Pipeline)
+Step 1. Create a New Jenkins Pipeline Job
+Step 2. Configure Maven
+Step 3. Write the Pipeline Script
+6. Integrating SonarQube for Static Code Analysis
+Step 1. Generate SonarQube Token
+Step 2 . Configure SonarQube Server in Jenkins
+Step 3. Configure Sonar Scanner in Jenkins
+Step 4. Running Jenkins Build with SonarQube Integration
+Step 5 : Run the Pipeline and Verifying the Build
+7 . Configuring Docker Authentication (Username + Token) in Jenkins
+Step 1 : Generate the Token
+Step 2: Add Docker Hub Credentials to Jenkins
+8. Building &amp; Pushing Docker Image to Docker Hub in Jenkins
+Prerequisites Recap:
+Step 1: Use Snippet Generator to Add Docker Credentials
+Step 2: Pipeline Script for Building and Pushing Docker Image
+Step 3: Run the Job
+9. Configure CD Server for Deployment
+1. Launching the CD Server
+2. Installing Docker on the CD Server
+10. Setup Jenkins Deployment Stage via SSH
+Step 1. Install the SSH Agent Plugin
+Step 2. Use the .pem File from Your CD Server
+Step 3. Add SSH Key to Jenkins Credentials
+Step 4. SSH Deployment via Jenkins Pipeline
+11. Final Jenkins Pipeline Script
+12. Running the Job &amp; Verifying Deployment
+Step 1. View Console Output :
+CD Stage (Deployment to Server):
+Step 2. Verify on CD Server
+  Step 3. Access the Application
+In this blog, I'll walk you through how set up a Continuous Integration and Continuous Deployment (CI/CD) pipeline using Jenkins, Docker, and SonarQube on an Ubuntu server.
+
+
+
+1.Launch Ubuntu Server (t2.large)
+I started by launching a t2.large EC2 instance with the Ubuntu Server image from AWS. This instance will serve as our CI server.
+Instance Type: t2.large or t3.large (2 vCPU, 8 GB RAM)
+
+2. Launching a Jenkins CI Server
+Started with an Ubuntu EC2 instance (t2.largeor t3.large).
+Connect to your console and install Jenkins.
+Run this script in root user
+vi jenkins.sh # Run this script in root user (sudo su -)
+#!/bin/bash
+sudo apt update -y
+#sudo apt upgrade -y
+wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc
+echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+sudo apt update -y
+sudo apt install temurin-17-jdk -y
+/usr/bin/java --version
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+                  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+                  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+                              /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt-get update -y
+sudo apt-get install jenkins -y
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+Run this script in root user (sudo su -)
+Once Jenkins is installed, you’ll need to allow traffic on port 8080 — the default port Jenkins uses for its web interface.
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+3. Installing Docker in Jenkins and Configuring Permissions
+sudo apt-get update
+sudo apt-get install docker.io -y
+sudo usermod -aG docker $USER   # ubuntu or ec2-user 
+newgrp docker
+sudo chmod 777 /var/run/docker.sock
+Check the Docker info after this to ensure it is working fine.
+Give Docker permissions to the Jenkins users.
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+
+groups jenkins This command checks which groups the Jenkins user belongs to.
+At first, it will show: This means Jenkins is only in its own group — not in the docker group yet. So Jenkins cannot run Docker commands for now.
+sudo usermod -aG docker jenkins
+This command adds the Jenkins user into the Docker group.
+-aG means: add to the group without removing existing ones.
+Now Jenkins will have permission to run Docker.
+
+getent group docker
+This checks who is inside the Docker group.
+If you see output like this:
+
+That means Jenkins is now successfully added to the Docker group. Good job!
+
+sudo systemctl restart jenkins
+Restart Jenkins service so it can apply the new group changes.
+Now Jenkins is ready to use Docker in your pipeline.
+
+4.Create a Sonarqube Container
+docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
+Enable 9000 port in the security group.
+Install these plugins in Jenkins:
+Docker: Docker, Docker Pipeline, Docker Build Step
+SonarQube: SonarQube Scanner, Quality Gates Plugin
+
+5. Creating a Jenkins Job (Pipeline)
+Step 1. Create a New Jenkins Pipeline Job
+Go to your Jenkins dashboard.
+Click “New Item”, give your job a name (e.g., jenkin-docker).
+Select “Pipeline” and click OK.
+Step 2. Configure Maven
+Go to Manage Jenkins > Global Tool Configuration.
+Under Maven, click Add Maven.
+Name it something like maven-3.9.9.
+Select Install automatically and choose version 3.9.9.
+Save your configuration.
+Step 3. Write the Pipeline Script
+Let's first verify that Jenkins can successfully clone your code and build it using Maven. This is a basic test to ensure everything is set up correctly.
+Goal: To check if the build process works without errors.
+Clone your code from GitHub
+Build the project using Maven
+No credentials required Since we are using a public GitHub repository, there’s no need to configure any credentials for Git access.
+
+
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven-3.9.9' // This should match the Maven name in Jenkins Global Tool Configuration
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', 
+                    url: 'https://github.com/kkdevopsb3/spring-boot-mongo-docker-kkfunda.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+    }
+}
+
+Now you can see that Jenkins builds the project successfully with each stage visible in the Jenkins UI under the Stage View.
+This confirms that your pipeline is running correctly. Next, you can move on to integrating SonarQube for code analysis or Docker for containerizing the build output.
+
+6. Integrating SonarQube for Static Code Analysis
+Step 1. Generate SonarQube Token
+Log in to your SonarQube dashboard.
+Click on your profile → My Account > Security.
+Generate a new token:
+Give it a name like jenkins-token
+Copy the generated token immediately — you won’t be able to see it again later
+Step 2 . Configure SonarQube Server in Jenkins
+Go to Manage Jenkins > Configure System.
+Scroll down to the SonarQube servers section.
+Click on Add SonarQube.
+Name: Give a name to your SonarQube server (e.g., sonarQube).
+Server URL: Enter the URL of your SonarQube server (e.g., http://your-sonarqube-server-url).
+Authentication Token:
+From the dropdown, select the credential you added earlier (a Secret Text containing your SonarQube token)
+Note: If you haven’t added the token yet:
+Click Add > Jenkins > Jenkins Credentials Provider
+
+In the popup, provide the details:
+Kind: Secret text
+Secret: Paste the SonarQube token you generated earlier
+Description: sonartoken
+Save it and then select it from the dropdown
+In SonarQube server configuration, select this token from the dropdown.
+Step 3. Configure Sonar Scanner in Jenkins
+Go to Manage Jenkins > Global Tool Configuration.
+Under SonarQube Scanner, click Add SonarQube Scanner.
+Name: SonarScanner
+Select Install automatically
+Step 4. Running Jenkins Build with SonarQube Integration
+Once you’ve configured your SonarQube server and added the authentication token in Jenkins, you can now run your Jenkins builds and trigger code analysis with SonarQube.
+Update Pipeline with Sonar Stage:
+The name 'sonar' used here must match the name you defined under:
+Manage Jenkins → Configure System → SonarQube Servers
+Jenkins will automatically use the SonarQube URL and authentication token from this configuration.
+You do not need to manually pass the token or URL in the pipeline.
+
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven3.9.9' // Make sure this name matches Jenkins global tools
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', 
+                    url: 'https://github.com/kkdevopsb3/spring-boot-mongo-docker-kkfunda.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh """
+                    mvn sonar:sonar \
+                        -Dsonar.projectKey=spring-boot-mongo \
+                        -Dsonar.projectName='Spring Boot Mongo Project' \
+                    """
+                }
+            }
+        }
+    }
+}
+
+Step 5 : Run the Pipeline and Verifying the Build
+Save the Pipeline Script in your Jenkins job configuration.
+Start the Build by clicking Build Now.
+Jenkins will:
+Clone your GitHub repository
+Run the Maven clean and package commands to build your project
+Execute the SonarQube analysis using the configured environment (withSonarQubeEnv('sonar'))
+You can view each stage (Checkout, Build, SonarQube Analysis) under the Stage View in Jenkins UI
+Each stage will be marked green indicating success
+Check the Build Status:
+The build should complete successfully
+Open your SonarQube dashboard (e.g., http://<your-ip>:9000) and log in.
+You’ll see the project Spring Boot Mongo Project listedconfirming analysis is successful.
+
+7 . Configuring Docker Authentication (Username + Token) in Jenkins
+If you’re using a Docker Hub username along with a token as the password, follow these steps:
+Step 1 : Generate the Token
+Click on your profile (top-right) → Account Settings
+Select Personal Access Token
+Give it Read, Write, Delete permissions
+Click to generate the token.
+Copy the token immediately — it will not be shown again
+Step 2: Add Docker Hub Credentials to Jenkins
+Navigate to:
+Jenkins Dashboard → Manage Jenkins → Credentials
+Under the appropriate domain (usually global), click:
+Add Credentials
+In the Kind dropdown, select: Username and password
+Fill in the form:
+Username: Your Docker Hub username
+Password: Paste your Docker authentication token
+ID: eg: docker
+Description: e.g: docker-cred
+Click OK to save the credentials.
+
+8. Building & Pushing Docker Image to Docker Hub in Jenkins
+Prerequisites Recap:
+Jenkins is installed
+Jenkins user must be added to the Docker group. (sudo usermod -aG docker jenkins)
+Docker Hub credentials (username + token) added to Jenkins as Username & Password
+GitHub repo has a valid Dockerfile
+Step 1: Use Snippet Generator to Add Docker Credentials
+To safely authenticate Docker commands (like docker push) from a Jenkins pipeline, you can use the built-in snippet generator:
+Navigate to your Jenkins job → Click on Pipeline Syntax (usually bottom left or under job configuration)
+From the dropdown, select: withDockerRegistry: Set up Docker registry endpoint
+Docker registry URL: ( Leave this empty) Docker Hub is a public registry, so no URL is required
+Credentials: Choose the one you just added (docker-cred)
+Click Generate Pipeline Script.
+Jenkins will provide you with a block like this, which you can use in your pipeline script.
+Step 2: Pipeline Script for Building and Pushing Docker Image
+
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven3.9.9' // Matches Jenkins global tools name
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', 
+                    url: 'https://github.com/kkdevopsb3/spring-boot-mongo-docker-kkfunda.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh """
+                    mvn sonar:sonar \\
+                        -Dsonar.projectKey=spring-boot-mongo \\
+                        -Dsonar.projectName='Spring Boot Mongo Project'
+                    """
+                }
+            }
+        }
+
+        stage('Build & Tag Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker') {
+                        sh 'docker build -t kkfunda/mongospring:latest .'
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker') {
+                        sh 'docker push kkfunda/mongospring:latest'
+                    }
+                }
+            }
+        }
+    }
+}
+
+Step 3: Run the Job
+Save the Jenkins job and click “Build Now”.
+
+A green checkmark in the UI indicates success.
+Click on the build number → Console Output.
+Jenkins securely uses your Docker credentials configured under ID: 'docker'.
+Image kkfunda/mongospring:latest is built and pushed to your Docker Hub repository.
+You can confirm it in the Docker Hub UI.
+
+9. Configure CD Server for Deployment
+1. Launching the CD Server
+This server is dedicated exclusively to handling deployments, ensuring a clear separation from CI tasks.
+2. Installing Docker on the CD Server
+Docker is essential for containerized deployments. We installed Docker using the following commands:
+sudo apt-get update
+sudo apt-get install docker.io -y
+sudo usermod -aG docker $USER   # ubuntu or ec2-user 
+newgrp docker
+sudo chmod 777 /var/run/docker.sock
+
+10. Setup Jenkins Deployment Stage via SSH
+Step 1. Install the SSH Agent Plugin
+Before proceeding, make sure the SSH Agent Plugin is installed. Without it, the pipeline won't be able to use SSH credentials, and your build will fail.
+Go to Jenkins Dashboard > Manage Jenkins > Plugins.
+Under the Available tab, search for SSH Agent Plugin.
+Install it and restart Jenkins if prompted.
+Step 2. Use the .pem File from Your CD Server
+To connect Jenkins to your CD server, you'll need the server’s SSH private key (.pem file). On the CD server, open a terminal and run:
+cat /path/to/your-key.pem
+Important: Copy the entire key, starting from
+-----BEGIN RSA PRIVATE KEY-----
+and ending with
+-----END RSA PRIVATE KEY-----.
+
+This key will be added to Jenkins in the next step so it can authenticate over SSH.
+Do not share this key publicly or store it in your Git repository it's a sensitive file that grants full access to your server.
+Step 3. Add SSH Key to Jenkins Credentials
+In Jenkins:
+Navigate to Dashboard > Manage Jenkins > Credentials.
+Under your domain (usually (global)), click Add Credentials.
+Choose Kind: SSH Username with private key.
+Fill out the form:
+ID: e.g: cd-ssh
+Description: something like CD Server EC2 access key
+Username: e.g, ubuntu (or your server’s user)
+Private Key: Select Enter directly, then paste the full contents of the .pem file
+Step 4. SSH Deployment via Jenkins Pipeline
+With SSH access configured, you can now use your pipeline to deploy to the CD server. Use ssh in the Jenkins pipeline to connect and deploy:
+Pull the Docker image
+Run the container
+Deployment Stage in Jenkins:
+
+'cd-ssh'
+This is the ID of the SSH credential you added earlier. You assigned it an ID like cd-ssh when you pasted your .pem private key. This ID is used here to retrieve and activate that key for this pipeline step.
+
+ stage('Deploy to CD Server') {
+     steps {
+         sshagent(['cd-ssh']) {
+            sh '''
+ssh -o StrictHostKeyChecking=no ubuntu@13.48.128.52 << EOF
+docker pull kkfunda/mongospring:latest
+docker stop myspringcontainer || true
+docker rm myspringcontainer || true
+docker run -d --name myspringcontainer -p 8080:8080 --restart unless-stopped kkfunda/mongospring:latest
+EOF
+            '''
+        }
+    }
+}
+
+What does it do?
+
+stage('Deploy to CD Server')
+This defines a pipeline stage called Deploy to CD Server — usually part of your Jenkins build pipeline.
+
+steps { ... }
+Inside this stage, you define the steps Jenkins will run.
+
+sshagent(['cd-ssh']) { ... }
+This uses Jenkins' ssh-agent plugin to temporarily supply SSH credentials identified by the ID cd-ssh.
+This allows Jenkins to authenticate via SSH when connecting to remote servers without needing a password prompt.
+
+sh ''' ... '''
+Runs a multiline shell script inside Jenkins on the Jenkins agent (the machine running the pipeline).
+
+Inside the shell script:
+
+ssh -o StrictHostKeyChecking=no ubuntu@13.48.128.52 << EOF
+This opens an SSH connection to the server at IP 13.48.128.52 as user ubuntu.
+-o StrictHostKeyChecking=no disables the SSH host key checking prompt, so it won’t stop to ask to confirm the remote host’s key.
+
+<< EOF ... EOF
+This is a here-document (heredoc): it sends all lines between << EOF and EOF as input to the remote SSH session. Basically, these commands run on the remote server.
+
+ssh -o StrictHostKeyChecking=no ubuntu@13.48.128.52 << EOF
+docker pull kkfunda/mongospring:latest
+docker stop myspringcontainer || true
+docker rm myspringcontainer || true
+docker run -d --name myspringcontainer -p 8080:8080 --restart unless-stopped kkfunda/mongospring:latest
+EOF
+
+Commands executed on the remote server:
+
+docker pull kkfunda/mongospring:latest
+Downloads the latest version of your Docker image from the registry.
+
+docker stop myspringcontainer || true
+Stops the running container named myspringcontainer if it exists. The || true ensures that if stopping fails (e.g., container isn’t running), the command doesn’t break the script.
+
+docker rm myspringcontainer || true
+Removes the stopped container named myspringcontainer if it exists, also ignoring errors.
+
+docker run -d --name myspringcontainer -p 8080:8080 --restart unless-stopped kkfunda/mongospring:latest
+This command starts a new container named myspringcontainer in detached mode (-d), mapping port 8080 on the server to port 8080 in the container.
+
+Explanation of --restart unless-stopped
+
+--restart is a Docker container restart policy flag.
+
+unless-stopped means:
+
+Docker will automatically restart the container if it crashes, stops unexpectedly, or the Docker daemon restarts (like after a server reboot).
+
+But if you manually stop the container (with docker stop), Docker won't restart it automatically after that.
+
+11. Final Jenkins Pipeline Script
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven3.9.9' // Matches Jenkins global tools name
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', 
+                    url: 'https://github.com/kkdevopsb3/spring-boot-mongo-docker-kkfunda.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh """
+                    mvn sonar:sonar \
+                        -Dsonar.projectKey=spring-boot-mongo \
+                        -Dsonar.projectName='Spring Boot Mongo Project'
+                    """
+                }
+            }
+        }
+
+        stage('Build & Tag Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker') {
+                        sh 'docker build -t kkfunda/mongospring:latest .'
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker') {
+                        sh 'docker push kkfunda/mongospring:latest'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to CD Server') {
+            steps {
+                sshagent(['cd-ssh']) {
+                    sh '''
+ssh -o StrictHostKeyChecking=no ubuntu@13.48.128.52 << EOF
+docker pull kkfunda/mongospring:latest
+docker stop myspringcontainer || true
+docker rm myspringcontainer || true
+docker run -d --name myspringcontainer -p 8080:8080 --restart unless-stopped kkfunda/mongospring:latest
+EOF
+                    '''
+                }
+            }
+        }
+    }
+}
+
+12. Running the Job & Verifying Deployment
+Go to Jenkins → Select your pipeline → Click “Build Now”
+
+Your application is now built, tested with SonarQube, dockerized, pushed to Docker Hub, and finally deployed automatically on your CD server.
+Step 1. View Console Output :
+CD Stage (Deployment to Server):
+SSH connection to CD server (ubuntu@13.48.128.52)
+
+Stops & removes old container
+
+Pulls latest Docker image
+
+Runs new container on port 8080
+
+Console shows logs like:
+
+
+
+
+
+Step 2. Verify on CD Server
+SSH into server Check Docker status:
+
+docker images Confirms the image is pulled
+
+docker ps Confirms the container is running
+
+
+
+Step 3. Access the Application
+You should see your Spring Boot application running successfully!
+
+
+
+#cicd-cjy1vtdk2005kjjs17n8couc3
+#docker
+Comments (1)
+Join the discussion
+Kanike Vishnuvardhan
+Kanike Vishnuvardhan
+1y ago
+Thank you.
+
+1
+More from this blog
+Docker Architecture
+Docker Architecture is the foundational system design that enables Docker to create, execute, and orchestrate containers efficiently. Docker Architecture Contains Three Components: Docker Client Docker Host Docker Registry Client → API Request ...
+
+Oct 30, 2024
+·2 min read
+Docker Architecture
+Mastering Docker: A Complete Guide with Best Practices
+1. What is Docker? Docker is an open-source platform for containerization that packages applications and their dependencies into units called containers. These containers are lightweight, portable, and allow developers to build, ship, and run applica...
+
+Oct 28, 2024
+·12 min read
+Mastering Docker: A Complete Guide with Best Practices
+Getting_started_with_docker
+
+3 posts
+
+© 2026 Getting_started_with_docker
+
+Members
+Archive
+Privacy
+Terms
+Sitemap
+RSS
+
