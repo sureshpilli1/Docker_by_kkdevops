@@ -1,0 +1,509 @@
+Docker Flow
+Docker Commands
+Checking Docker Images and Containers
+```sh
+docker images
+```
+```sh
+docker ps  # Lists running containers
+```
+```sh
+docker container ls  # Alternative to 'docker ps'
+```
+
+Running Containers
+```sh
+docker run -d -p 80:80 --name nginxcontainer nginx:latest
+```
+```sh
+docker run -d -p 8080:8080 --name tomcatcontainer tomcat:latest
+```
+
+Checking Open Ports
+```sh
+netstat -tunlap
+```
+If `netstat` is not available, install it:
+```sh
+sudo apt install net-tools
+netstat -tunlap
+```
+
+Inspecting a Running Container
+```sh
+docker exec tomcat ls /usr/local/tomcat/webapps   # No host folder in the latest version
+```
+```sh
+docker exec tomcat java -version  # Check Java version inside the container
+```
+
+Removing and Restarting a Container
+```sh
+docker rm -f tomcat  # Force remove the Tomcat container
+```
+```sh
+docker run -d -p 8080:8080 --name tomcat tomcat:6.0.43-jre8
+```
+```sh
+docker exec tomcat ls /usr/local/tomcat/webapps
+```
+
+---
+
+Docker Objects
+
+Summary of Docker Objects
+- **Containers**: Running instances of images.
+- **Images**: Read-only templates used to create containers.
+- **Volumes**: Persistent storage for container data.
+- **Networks**: Facilitate communication between containers and external systems.
+- **Registries**: Storage and distribution points for images.
+- **Dockerfile**: Defines how to build a Docker image.
+- **Docker Compose**: Manages multi-container Docker applications.
+
+---
+
+What is Docker Build Context?
+In Docker, the **build context** is the set of files and directories that are available to the Docker engine when building a Docker image. 
+The build context includes the `Dockerfile` and any files required for the image build process.
+
+---
+
+Practical Session: Understanding Docker
+
+Step 1: Verify Docker Installation
+```sh
+docker --version
+```
+
+Step 2: Clone a Sample Web Application
+```sh
+git clone https://github.com/kkeducation12345/maven-web-app-project-kk-funda.git
+cd maven-web-app-project-kk-funda
+```
+
+Step 3: Install Maven and Java
+```sh
+sudo apt install maven -y  # Installs Maven and JRE
+java --version  # Verify Java installation
+mvn -version  # Verify Maven installation
+```
+
+Step 4: Build the Application Artifact
+```sh
+mvn clean package
+```
+Ensure your `pom.xml` contains a valid Maven build configuration:
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-war-plugin</artifactId>
+            <version>3.3.2</version> <!-- Use a stable version -->
+        </plugin>
+    </plugins>
+</build>
+```
+
+Step 5: Create a Dockerfile
+```sh
+vi Dockerfile
+```
+Add the following content to the Dockerfile:
+```dockerfile
+FROM tomcat:9.0.100
+COPY target/maven-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
+```
+
+Step 6: Build the Docker Image
+```sh
+docker build -t kkeducation12345/java-web-app .
+```
+
+Step 7: Verify Docker Images
+```sh
+docker images  # OR
+```
+```sh
+docker image ls
+```
+
+Step 8: Push Image to Docker Hub
+**Before pushing, authenticate to Docker Hub:**
+```sh
+docker login -u kkeducation12345 -p password
+```
+Push the image:
+```sh
+docker push kkeducation12345/java-web-app
+```
+
+Step 9: Run a Container from the Image
+```sh
+docker run -d -p 8080:8080 --name javawebapp kkeducation12345/java-web-app
+```
+
+Step 10: Verify Running Containers
+```sh
+docker ps -a  # Lists all containers
+```
+
+---
+
+# Accessing a Running Container
+To enter the running container's shell:
+```sh
+docker exec -it javawebapp /bin/bash
+```
+
+
+
+
+
+
+BLOGNOTES:
+---------
+
+1. Docker Architecture
+The three main parts shown are:
+Docker Client  →  Docker Host  →  Docker Registry
+                     │
+                     ├── Docker Daemon
+                     ├── Images
+                     └── Containers
+Docker Client
+The Docker Client is what you interact with from the terminal.
+For example:
+docker run nginx
+docker build .
+docker pull nginx
+docker ps
+When you type:
+docker run nginx
+the Docker Client doesn't actually create the container itself.
+It sends a request/API request to the Docker Daemon.
+
+2. Docker Host
+The Docker Host is the machine where Docker is installed and where containers actually run.
+In your example, it is the:
+EC2 Ubuntu instance
+Inside that EC2 machine, you have the Docker Daemon:
+EC2 Ubuntu
+│
+└── Docker
+    │
+    └── Docker Daemon (dockerd)
+         │
+         ├── Images
+         ├── Containers
+         ├── Networks
+         └── Volumes
+Docker Daemon
+
+The Docker Daemon is the main background service that does the actual Docker work.
+It receives requests from the Docker Client and performs them.
+For example:
+docker run nginx
+means approximately:
+You
+ │
+ │ docker run nginx
+ ▼
+Docker Client
+ │
+ │ API request
+ ▼
+Docker Daemon
+ │
+ ├── Is nginx image available?
+ │
+ ├── If not → download it
+ │
+ ├── Create container
+ │
+ └── Start container
+ 
+3. Docker Registry
+A Docker Registry is a place where Docker images are stored.
+For example:
+Docker Hub is a public registry.
+Suppose your EC2 machine doesn't have the nginx image.
+You execute:
+docker run nginx
+Docker checks:
+Do I already have nginx image?
+       │
+   ┌───┴───┐
+   │       │
+  YES      NO
+   │       │
+   │       ▼
+   │   Pull from
+   │   Registry
+   │       │
+   └───┬───┘
+       ▼
+   nginx image
+       │
+       ▼
+   Create container
+       │
+       ▼
+   Start container
+
+That's exactly what you saw in your screenshot:
+Unable to find image 'nginx:latest' locally
+Pulling from library/nginx
+...
+Status: Downloaded newer image for nginx:latest
+The important point is:
+The registry stores images; the Docker Host runs containers.
+
+4. Docker Workflow
+The picture gives:
+Dockerfile → Docker Image → Docker Container
+This is extremely important.
+Dockerfile
+A Dockerfile is like a recipe/instruction document.
+For example:
+FROM openjdk:17
+COPY app.jar /app.jar
+CMD ["java", "-jar", "/app.jar"]
+
+It tells Docker:
+Start with Java 17, put my application inside, and run it.
+Docker Image
+When Docker processes the Dockerfile:
+docker build .
+it creates an image.
+Think:
+
+Dockerfile
+   │
+   │ docker build
+   ▼
+Docker Image
+An image is basically a prepared package/template containing what is needed to run your application.
+Docker Container
+When you execute:
+docker run myimage
+Docker creates a running container from that image.
+So:
+Dockerfile
+     ↓
+ Docker Image
+     ↓
+ Docker Container
+
+A simple real-world analogy:
+Recipe       → Dockerfile
+Prepared food → Docker Image
+Food being served → Docker Container
+The analogy isn't technically perfect, but it's useful for remembering the relationship.
+
+5. Your NGINX Example
+This is the most useful practical part of the pictures.
+You ran:
+docker run -d -p 80:80 --name nginxcontainr nginx
+Let's break this command down.
+docker run
+docker run
+means:
+Create a container from an image and start it.
+nginx
+At the end:
+nginx
+is the image name.
+Docker needs an image from which it can create the container.
+If the image isn't already present:
+Local EC2
+   │
+   │ nginx image not found
+   ▼
+Docker Registry
+   │
+   │ download
+   ▼
+EC2
+   │
+   ▼
+nginx image
+6. What does -d mean?
+-d
+means detached mode.
+The container runs in the background.
+Without -d, your terminal can remain attached to the container's output.
+With:
+docker run -d nginx
+Docker starts NGINX in the background and gives you your terminal back.
+
+7. What does -p 80:80 mean?
+This is very important.
+-p 80:80
+means:
+Host port : Container port
+     80   :      80
+
+So:
+EC2 Host
+Port 80
+   │
+   │
+   ▼
+NGINX Container
+Port 80
+When someone accesses:
+EC2-IP:80
+the request is forwarded to:
+NGINX container:80
+That's why you could see:
+Welcome to nginx!
+in the browser.
+
+8. What does --name nginxcontainr mean?
+--name nginxcontainr
+gives your container a human-readable name.
+Instead of remembering a container ID such as:
+081d763d11e1...
+you can use:
+nginxcontainr
+For example:
+docker stop nginxcontainr
+or:
+docker start nginxcontainr
+
+9. What happened when you executed the command?
+Your command:
+docker run -d -p 80:80 --name nginxcontainr nginx
+caused approximately this sequence:
+
+                 Docker Client
+                      │
+                      │ docker run
+                      ▼
+                Docker Daemon
+                      │
+                      ▼
+             Check nginx image
+                      │
+               ┌──────┴──────┐
+               │             │
+             Found        Not Found
+               │             │
+               │             ▼
+               │        Docker Registry
+               │             │
+               │          Pull nginx
+               │             │
+               └──────┬──────┘
+                      ▼
+                 nginx Image
+                      │
+                      ▼
+              Create Container
+                      │
+                      ▼
+             nginxcontainr
+                      │
+                      ▼
+                 Start NGINX
+                      │
+                      ▼
+            Container Port 80
+                      ▲
+                      │
+              Host Port 80
+10. docker images vs docker ps
+Your screenshot shows both commands.
+docker images
+docker images
+shows images stored on the machine.
+Example:
+REPOSITORY   TAG      IMAGE ID
+nginx        latest   a72860cb95fd
+Think:
+What templates/packages do I have?
+docker ps
+docker ps
+shows currently running containers.
+Example:
+CONTAINER ID   IMAGE   STATUS       PORTS
+081d763d11e1   nginx   Up 43 seconds  0.0.0.0:80->80/tcp
+
+Think:
+What containers are currently running?
+So remember:
+docker images
+      ↓
+Shows images
+
+docker ps
+      ↓
+Shows running containers
+11. The NGINX browser page
+
+When you saw:
+
+Welcome to nginx!
+
+that proved several things were working:
+
+Browser
+   │
+   │ HTTP request
+   ▼
+EC2 Port 80
+   │
+   │ port mapping 80:80
+   ▼
+NGINX Container
+   │
+   ▼
+NGINX Web Server
+   │
+   ▼
+Welcome to nginx!
+So this wasn't just a random webpage.
+It demonstrated that your:
+EC2 → Docker → Container → NGINX → Port 80
+path was working.
+
+12. Supporting concepts
+The last picture introduces four important terms:
+Term	Simple meaning
+Image	Ready-made package/template used to create containers
+Container	Running instance of an image
+Volume	Storage for keeping data outside the container
+Network	Allows containers to communicate with each other and/or the outside world
+
+The most important relationship for now is:
+
+                 Dockerfile
+                     │
+                  build
+                     ▼
+                 Docker Image
+                     │
+                   run
+                     ▼
+              Docker Container
+
+And the complete Docker architecture you should remember is:
+
+                         Docker Registry
+                        (Docker Hub etc.)
+                              ▲
+                              │ pull/push
+                              │
+                              ▼
+User → Docker Client → Docker Daemon
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+           Images    Containers   Networks
+                                    │
+                                  Volumes
+
+This is the foundation for understanding Docker commands such as docker build, docker pull, docker run, docker ps, docker images, docker stop, and docker rm.
+
