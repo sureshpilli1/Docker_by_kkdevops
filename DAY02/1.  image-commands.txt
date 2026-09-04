@@ -164,4 +164,495 @@ docker exec -it javawebapp /bin/bash
 
 BLOGNOTES:
 ---------
+1.What is Docker Architecture?
+Docker Architecture is the system design behind Docker.
+It shows how Docker works to create, run, and manage containers efficiently.
+Docker Architecture Contains Three Components:
+1. Docker Client
+2. Docker Host
+3. Docker Registry
 
+1.1 Docker Client
+Provides CLI (Command-Line Interface) commands
+When a user enters a Docker command (e.g., docker run docker build docker pull), the Docker
+Client sends an API request to the Docker Daemon (inside Docker Host). The Docker Daemon
+istens for these requests from the Client and executes them, managing container operations as
+needed.
+1.2 Docker Host
+The Docker Host is the machine (or environment) where the Docker Daemon and other
+components like Docker images and containers are managed and executed. It's one of the
+main components of Docker's architecture.
+What the Docker Daemon Does:
+The Docker Daemon is the core service inside the Docker Host.
+It listens for API requests from the Docker Client and performs key actions like:
+1. Waiting for Instructions
+The Docker Daemon waits for commands from the Docker Client via API requests.
+2. Building Images
+It builds Docker images from Dockerfiles (files that define the image content).
+3. Starting and Running Containers
+It uses the images to create and start containers - containers are like live, running
+apps made from the images.
+4. Managing the Full Lifecycle of Containers
+The Docker Daemon manages containers through all their stages:Start,Stop ,Delete
+Inside the Docker Host
+The Docker Host is like a working environment where everything happens.
+Inside the Docker Host, there's a background service called the Docker Daemon (dockerd).
+This service handles all container-related tasks, such as:
+. Running containers
+. Storing Docker images
+. Handling container networks (so containers can talk to each other)
+. Managing volumes (saving container data)
+Example : The Docker Host is the kitchen, and the Docker Daemon is the chef that prepares
+the containers (like food) based on the recipes (Docker images).
+
+1.3. Docker Registry
+A Docker Registry is a central place where Docker images are stored and managed.
+It allows you to push (upload) and pull (download) images as needed.
+Two Types of Registries:
+1. Public Registry:
+o Example: Docker Hub
+o Open to the public, commonly used for sharing and accessing images.
+2. Private Registry:
+o Example: Docker Trusted Registry
+o Secure and used mainly within organizations for storing private images.
+. This is where Docker images are saved.
+. If your system doesn't have the image, it pulls (downloads) it from here.
+
+2. Docker Workflow
+Dockerfile - Docker Image -> Docker Container
+. Dockerfile: A Dockerfile is a blueprint that contains a set of instructions to build a Docker
+image. It defines the steps, environment, and dependencies needed for your application.
+. Docker Image: A Docker image is a read-only snapshot of your application's environment
+at a specific point in time. It contains everything needed to run an application, including the
+code, libraries, and system tools.
+. Docker Container: A Docker container is a running instance of a Docker image.
+It's mutable (can be changed during runtime) and isolated from other containers and the
+host system. Containers allow applications to run consistently across different environments.
+Client → API Request → Docker Daemon (on Host) → Check Image Local → 
+If Not Found → Pull from Registry → Create Container → Start Container
+Let's break that into simple steps:
+
+1. Pull and Run NGINX
+docker run -d -p 80:80 -- name ngnixcontainr nginx
+-d: Run in detached mode (in background)
+-p 80:80: Map host port 80 to container port 80
+-- name nginxcontainer: Assign a name to the container
+nginx: Use the official NGINX image
+Docker Client sends this to Docker Daemon (via API).
+Docker Daemon checks if the nginx image is already downloaded.
+If image is not found, it pulls it from Docker Registry.
+Once image is ready, Docker Daemon:
+Creates a container using the image
+Starts the container
+6. Now nginx is running in a container.
+13.233.233.98
+A Not secure
+Welcome to nginx!
+If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.
+For online documentation and support please refer to nginx.org.
+Commercial support is available at nginx.com.
+
+4.Docker Objects - Key Components
+. Containers: Active instances of Docker images.
+. Images: Read-only templates used to create containers.
+. Volumes: Persistent storage for data outside containers.
+. Networks: Enable communication between containers and external systems.
+. Registries: Storage and distribution points for Docker images.
+. Dockerfile: Instructions to build a Docker image.
+. Docker Compose: Tool for defining and managing multi-container applications.
+
+5.Create a Docker Account
+1. Go to the Docker Website
+Open your browser and go to https://hub.docker.com
+2. Click "Sign Up"
+o You'll find the Sign Up button in the upper-right corner.
+3. Fill Out the Registration For **** m
+o Username: Choose a unique Docker ID.
+Email: Use a valid email address.
+Password: Create a strong password.
+4. Agree to Terms and Conditions
+o Check the box to agree to Docker's terms of service and privacy policy.
+5. Click "Sign Up"
+o After completing the form, hit the Sign Up button.
+6. Verify Your Email
+o Check your email inbox for a confirmation message from Docker.
+o Click the link in the email to verify your account.
+
+6. Docker Practical Session - Building and Running a Java
+Web App Using Docker
+Prerequisites:
+Docker installed
+Docker Hub account created
+Step 1: Verify Docker Installation
+Command:
+docker -- version
+To check if Docker is correctly installed on your system.
+Step 2: Clone a Sample Web Application
+git clone https://github.com/kkeducation12345/maven-web-app-project-kk-funda.git
+cd maven-web-app-project-kk-funda
+To get Java web project we can build and package into a Docker container.
+ubuntu@ip-172-31-46-130 :~ $ 1s
+maven-web-app-project-kk-funda
+ubuntu@ip-172-31-46-130 :~ $ cd maven-web-app-project-kk-funda/
+ubuntu@ip-172-31-46-130 :~ /maven-web-app-project-kk-funda$ 1s
+README . md
+pom.xml src
+You can see the pom.xml file (used by Maven), and the src/ folder has our Java code."
+Step 3: Install Maven and Java
+ubuntu@ip-172-31-15-142 :~ /maven-web-app-project-kk-funda$ sudo apt install maven -y
+Commands:
+sudo apt install maven -y
+java --version
+mvn -version
+When you run sudo apt install maven -y, your system installs Maven, which is a build tool used
+for Java projects.
+. If Java (JRE or JDK) is already installed, it will just install Maven.
+. If Java is not installed, it will automatically install OpenJDK as a dependency.
+. This project uses Java and Maven for building the .war file.
+Step 4: Build the Application Artifact
+This command tells Maven to: Clean the previous builds (delete old compiled files) Package the
+project (compile source code and generate .war file)
+mvn clean package
+. After running the above command, Maven starts processing. But you might get an error like:
+. The plugin version 2.2 is very old and not compatible with the current Maven/Java runtime.
+[ERROR] Execution default-war of goal org.apache.maven.plugins:maven-war-plugin:2.2:war failed:
+Unable to load the mojo 'war' in the plugin '...maven-war-plugin:2.2' due to an API incompatibility
+. This is because the pom. xml file might not have the correct plugin version or structure.
+. You need to update the maven-war-plugin version to a more recent one (e.g., 3.3.2).
+
+Open pom. xm1:
+
+vi pom.xml
+Scroll to the <build> section and add this:
+org.apache.maven.plugins
+maven-war-plugin
+3.3.2
+
+This defines the correct WAR plugin for Maven to build your Java web application.
+Now Run the Command Again:
+mvn clean package
+. This time it should work properly,you will see output like: BUILD SUCCESS
+Why the Old Plugin Doesn't Break the Build After Adding the New One
+Maven uses the "Nearest-wins strategy", so it picks the plugin version defined directly in your
+project's pom. xml.
+Even if an older version (like 2.2) exists in a parent POM, your local <plugin> with version 3.3.2
+overrides it.
+So, there's no problem or conflict - Maven will use the version you explicitly specify.
+
+Check the Target Folder:
+You should now see files like:
+That .war file is what we will use to deploy your app in a Docker container.
+
+Step 5: Create a Dockerfile
+. We're using an official Tomcat image as base.
+. We copy the .war file into the webapps/ directory so Tomcat runs it automatically.
+ubuntu@ip-172-31-46-130 :~ /maven-web-app-project-kk-funda/target$ vi Dockerfile
+
+vi Dockerfile
+Write the Dockerfile:
+
+FROM tomcat : 9.0.100-jdk8-corretto
+target/maven-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
+
+FROM tomcat:9.0.100-jdk8-corretto
+. This line tells Docker to use the official Tomcat image as the base image for the container.
+. Tomcat version: 9.0.100
+. A specific version of the Apache Tomcat 9 application server.
+. JDK version: jdk8-corretto
+. The image uses Amazon Corretto 8, which is a free, multiplatform, production-ready
+distribution of OpenJDK 8.
+
+NOTE:
+. Avoid using fixed Tomcat version tags as they may become deprecated.
+. Use flexible tags to get automatic updates and security patches.
+. Keep your base image updated and always check Docker Hub - Tomcat for the latest
+supported tags
+
+COPY target/maven-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
+. This line copies your built WAR (Web Application Archive) file from your local file system into
+the Docker image.
+. target/maven-web-application.war: This is the source path on your host machine.
+. It assumes you've built the application using Maven, and the WAR file is in
+the target/ directory.
+. /usr/local/tomcat/webapps/maven-web-application.war: This is the destination path inside the
+container.
+. Placing the WAR file here automatically deploys it when Tomcat starts, because Tomcat
+monitors this directory (webapps/) for applications to deploy.
+
+Step 6: Build the Docker Image
+You need to run the docker build command in the directory where the Dockerfile is located.
+. The . (dot) tells Docker to use this current directory as the build context, meaning Docker
+will include all files in this directory when building the image.
+docker build -t kkeducation1234/javawebapp .
+. kkeducation1234: This is your Docker Hub username or organization name.
+. java-web-app: This is the repository name (which is also the name of the image you're
+building).
+. latest (default): If you don't specify a tag, it will be automatically tagged as latest (unless
+you specify something like v1, 1.0, etc.).
+. The . (dot) tells Docker to use this current directory as the build context, meaning Docker
+will include all files in this directory when building the image.
+
+Step 7: Verify Docker Images
+To check if your image was created successfully.
+docker images (or)docker image ls
+We use a base image tomcat, and build our custom image on top of it by adding our own
+application and configurations.
+Here's our custom image named kkeducation1234/java-web-app. This image includes:
+. A full Tomcat server
+. Our Java application pre-deployed inside it
+You can build and tag multiple custom images for different environments or versions, all based
+on the same or different base images.
+
+Step 8: Push Image to Docker Hub
+Docker Hub requires you to log in before pushing images.
+Without logging in, you will get a "denied: requested access to the resource is denied" error
+when you try to push.
+docker login -u kkeducation1234 -p
+(You'll be asked to enter your Docker Hub password.)
+Then push your image:
+This uploads your image to Docker Hub so you can access it from any machine.
+Eg: docker push kkeducation1234/javawebapp
+Check on Docker Hub:
+We uploaded our image to Docker Hub. Now anyone (or any machine) can pull and use it.
+What is a Docker ID?
+Your Docker ID is your account name on Docker Hub. It can be a personal ID or an organization's
+name.
+Example:
+If your Docker ID is kkeducation1234, you will use this as a prefix when naming your Docker images.
+
+What is a Repository?
+A Repository is like a folder in your Docker Hub account.
+Each repository is used to store Docker images for one specific application.
+Example:
+If you have a Java application, you can create a repository called: kkeducation1234/javawebapp
+This is one repository where all versions (tags) of that Java app will be stored.
+What is a Tag?
+A Tag is like a version number of your Docker image.
+Each image version gets a tag so you can manage them easily.
+Example tags inside the same repository:
+kkeducation1234/javawebapp:latest
+kkeducation1234/javawebapp:1.0.0
+kkeducation1234/javawebapp:2.0.0
+. All these are versions of the same application, stored inside the same repository on Docker Hub.
+. So far, we already created and pushed one version of the image using the latest tag. Now, we will:
+. Create a new version of the same image
+. Tag it as 1.0.0
+. Push it to Docker Hub
+. This helps us understand how multiple versions of a Docker image can be managed within
+the same repository.
+Build the Docker Image with a New Tag (1.0.0)
+build the docker image with new tag(1.0.0)
+push the new version to Dcoker hub
+You will now see multiple tags (versions) under the same repository.
+This is how we maintain versioned images for one application - all stored together and easy to
+access anytime.
+Different Repository Name = New Repository Created
+If you change the repository name, Docker Hub treats it as a completely separate repo.
+
+7.Docker history Command - To Check Image Layers
+This command shows how the Docker image was created, step by step.
+It tells you which command added which layer, and also how big each layer is.
+Why Use docker history
+. To see inside the image
+. To check which step added more size
+. Helpful to clean or optimize the image
+You can use either the image name or image ID with the docker history command.
+(or) docker history
+docker history
+8.Run a Container from the Image
+This command starts your container using the image you built.
+docker run -d -p 8080:8080 --name javawebapp kkeducation1234/javawebapp:latest
+. This command starts your container using the image you built.
+. The -d option means it runs in the background, so your terminal is free.
+. -p 8080:8080 maps port 8080 inside the container to port 8080 on your machine. This lets
+you open it in your browser.
+. -- name javawebapp gives your container a friendly name so you don't have to remember its ID.
+
+Now, open your browser and visit:
+http://localhost:8080/maven-web-application
+
+9. Verify Running Containers
+docker ps -> shows only containers with Status: Up
+docker ps
+This list all containers running containers.
+ubuntu@ip-172-31-15-142 :~ /maven-web-app-project-kk-fundas
+ubuntu@ip-172-31-15-142 :~ /maven-web-app-project-kk-fundas docker ps
+CONTAINER ID
+
+ob24eba9a94c
+0->8080/tcp
+buntu@ip-172-31-15-142 :~ /maven-web-app-project-kk-fundas |
+kkeducation1234/javawebapp: latest
+javawebapp
+
+COMMAND
+
+"catalina.sh run"
+
+
+19 seconds ago
+
+STATUS
+
+Up 17 seconds
+
+PORTS
+
+0.0.0.0:8080->8080/tcp,
+
+Here we can see catalina.sh after the container starts.
+. This is the startup script used by Apache Tomcat.
+. It controls how the Tomcat server starts, stops, or restarts.
+docker ps -a -> shows all containers (running + stopped)
+
+10.Removing Containers
+Remove a Running Container (Forcefully)
+If the container is still running, Docker won't let you remove it without stopping it first, unless you
+use the force option:
+You can also use the container's name or ID directly:
+docker rm -f javawebapp or docker rm -f
+This command forcibly stops and deletes the running container in one step.
+ubuntu@ip-172-31-15-142 :~ /maven-web-app-project-kk-fundas docker rm -f bb24eba9a94c
+pb24eba9a94c
+Ibuntu@ip-172-31-15-142 :~ /maven-web-anp-proiect-kk-fundas
+Once you're done testing or no longer need a container, you can remove it.
+If the container is not running, simply run:
+docker rm
+(or) docker rm
+docker rm
+(or) docker rm
+You can also use the container's ID directly:
+
+11.Removing Docker Images
+Normally, to remove a single Docker image, you use:
+docker rmi (or) < image name>
+To Remove All Images at Once:
+You can use:
+docker rmi $(docker images -aq)
+Explanation:
+. docker images -aq -> lists only image IDs.
+. $( ... )- passes those IDs into the docker rmi command.
+
+Common Mistake:
+docker rmi (docker images -aq)
+This fails with a syntax error because Bash doesn't use parentheses () for command substitution
+- it uses $().
+
+12. Access a Running Container
+To access the container's terminal and explore its filesystem, use the following command.
+docker exec -it /bin/bash (or) docker exec -it /bin/bash
+Going inside the container's terminal is very useful for debugging or checking the application
+deployment, especially in cases like Java web apps deployed in Tomcat.
+
+13. Real-World DevOps: Build Server + Deployment Server
+Workflow
+So far, we've done everything - building the Docker image, tagging, and running the container on
+a single server.
+But in real-world DevOps, we follow a cleaner and more scalable setup using two different
+servers:
+1. Build Server (CI or Development Environment)
+This server is responsible for:
+. Building Docker images from the source code
+. Tagging images with version numbers
+. Pushing them to a remote Docker registry (like Docker Hub or private registry)
+
+Example:
+docker build -t kkeducation1234/javawebapp:1.0.0.
+docker push kkeducation1234/javawebapp:1.0.0
+This server is usually connected to CI tools like Jenkins, GitHub Actions, or GitLab Cl, which
+automatically build the image when code changes are pushed.
+
+2. Deployment Server (Staging or Production)
+This server is not involved in building. It's meant only for running the container.
+. Pulls the image from Docker Hub (or other registry)
+. Runs the image as a container to serve the app
+Example:
+docker pull kkeducation1234/javawebapp:1.0.0
+docker run -d -p 8080:8080 kkeducation1234/javawebapp:1.0.0
+You don't need to copy code or build files here - just pull the ready-to-use image and deploy it.
+Deployment Server Setup
+1. Create a new EC2 Ubuntu instance (Deployment Server)
+2. Install Docker on the deployment server
+3. Add the user to the Docker group for permission to run Docker commands without sudo
+Pull the Image:
+4. Run the container
+5. Access the app
+open your browser
+
+14. Docker inspect - See Deep Info About Images &
+Containers
+docker inspect provides a detailed report in JSON format, showing all the important technical
+details about Docker items like containers or images. It gives you all the metadata you need for
+debugging, monitoring, or understanding how your Docker objects are configured and connected.
+docker inspect 
+docker inspect 
+what you get when you inspect an image:
+. Image ID and tags
+· Parent image info
+. Created time and author
+. Container configuration stored within the image (default commands, environment variables)
+. Layer history and size
+What you get when you inspect a container
+. Container ID and Name
+. Image used by the container
+. Command and arguments used to start the container
+. Environment variables set inside the container
+. Mapped ports (which host ports are forwarded to which container ports)
+. Mounted volumes and their paths inside the container
+. Network details such as IP address and network mode
+. State information (running, paused, exited, etc.)
+
+15. What Happens When You Try to Delete a Docker Image?
+Delete an Image NOT used by any container:
+docker rmi 
+Allowed. Image will be deleted. Safe.
+Delete an Image STILL mapped to a container:
+docker rmi
+ubuntu@ip-172-31-9-173 :~ $ docker rmi 64f730ce5c42
+Error response from daemon: conflict: unable to delete 64f730ce5c42 (cannot be forced) - image is being used by running container f2b
+7814af5b0
+ubuntu@ip-172-31-9-173 :~ $
+. If containers based on the image are running, you must stop those containers first.
+. After stopping, you can use docker rmi -f <image> to force remove the image
+docker rmi -f
+
+16. Docker Tag - Naming and Versioning Images
+The docker tag command is used to give a new name or version to an existing image.
+It's similar to how you use the mv command in Linux to rename a file, but here you are tagging an
+image (not moving it).
+docker tag:
+docker tag kkeducation12345/javawebapp:1.0.0 kkeducation12345/javawebapp:2.0.0
+It creates another reference (alias) to the same image ID. You're not copying or modifying the
+image - just giving it a new label.
+
+17. Docker Path & What's Inside
+Docker stores all images, containers, and configs under:
+/var/lib/docker
+Contents inside:
+. overlay2/: image and container layer data
+. containers/: metadata for running/stopped containers
+· image/: image metadata
+· volumes/: volume data
+Be careful modifying this folder directly - it's managed by Docker internally.
+
+18. Save and Load Docker Images (Sharing)
+Saving to a . tar file lets you transfer the image to other machines, or store it for later - like taking
+a snapshot of your app.
+docker save -o image.tar kkeducation1234/javawebapp:2.0.0
+
+Remove the Image Locally
+Now we will remove the image.
+We want to prove that we can load the image back later, and it will be exactly the same, even
+the image ID.
+This is like deleting a file from your system and then restoring it from a backup.
+docker rmi kkeducation1234/javawebapp:2.0.0
+
+Load the image from .tar
+let's restore the image we saved
+run the docker images command to check if the image was restored 
+docker load -i image.tar
+Docker reads the tar file and re-imports the image with the same repository name, tag, and
+image ID as before.
+Run the docker images command to check if the image was restored:
+You can share .tar file using scp command (secure copy):
