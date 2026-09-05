@@ -1,7 +1,8 @@
 Dockerfile
 ==========
 
---> A Dockerfile is a text document containing a series of instructions on how to build a Docker image. It defines everything needed to create a containerized application, including the base image, the application code, and any necessary dependencies.
+--> A Dockerfile is a text document containing a series of instructions on how to build a Docker image. 
+It defines everything needed to create a containerized application, including the base image, the application code, and any necessary dependencies.
 
 --> Docker runs these instructions from top to bottom 
 
@@ -102,22 +103,15 @@ NOTE: More than one LABEL will allow in image
 
 COPY <src> <dest>
 
-Purpose: Copies files or directories from the host machine to the image. The source path is relative to the build context (the directory containing the Dockerfile), and the destination path is inside the image.
+Purpose: Copies files or directories from the host machine to the image. 
+The source path is relative to the build context (the directory containing the Dockerfile), and the destination path is inside the image.
 
 
 Example: COPY target/mavan-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
 
          COPY . .
     
-        COPY abc.tar /opt/
-
-
-
-
-
-
-
-
+        COPY abc.tar /opt
 
 
 
@@ -132,18 +126,6 @@ Purpose: Similar to COPY, but with additional features like handling remote URLs
 Example: ADD https://example.com/file.tar.gz /app/
 
          ADD abc.tar /opt/    -> untar 
-
-
-
-
-
-
-
-
-
-
-
-
 
 6. RUN 
 ------
@@ -176,14 +158,6 @@ NOTE: please use shell form for RUN instructions, so we can replace variables ea
 
 
 
-
-
-
-
-
-
-
-
 7. CMD
 ------
 --> CMD instruction used to execute a commands/ scripts etc.
@@ -200,14 +174,6 @@ EX:
    ---------------
    CMD ["sh", "app.sh"]
    CMD ["java", "-jar", "abc.jar"]
-
-
-
-
-
-
-
-
 
 
 IQ] what is shell form and executable form in docker?
@@ -236,14 +202,6 @@ NOTE: when you are using CMD and ENTRYPOINT executable form is preferable.
 
 
 
-
-
-
-
-
-
-
-
 IQ] what is the difference between RUN and CMD?
 
 ANS:
@@ -260,15 +218,6 @@ CMD echo "three"
 
 IQ] can you have a more than one CMD in a Dockerfile?
  Ans: Yes you have, But only the last one/ recent one in the order will be executed while creating a container.
-
-
-
-
-
-
-
-
-
 
 
 8. ENTRYPOINT
@@ -325,12 +274,6 @@ IQ] what is the difference between RUN and docker run?
 ===============================================================================================
 
 
-
-
-
-
-
-
 Sample Docker File 1
 ---------------------
 
@@ -359,3 +302,453 @@ IQ] what if we delete all the images and again build the docker file? what happe
 
 
 Ans:  
+
+
+
+
+
+
+
+BLOG NOTES:
+----------
+
+What is Dockerfile?
+A Dockerfile is a text file containing instructions that define how to build a Docker image. It
+specifies the base image, commands, files, dependencies, and configuration for the image.
+Each instruction creates a new layer in the Docker image, and Docker executes these
+instructions sequentially from top to bottom.
+Docker instructions form the backbone of a Dockerfile. They define everything needed to build,
+configure, and run Docker containers. Each instruction serves a specific purpose - whether it's
+setting up the environment, installing packages, copying files, or defining how the container
+should start.
+
+Inside Docker (Instruction Handler):
+Inside Docker's engine (written in Go), there is something called an instruction handler. You can
+imagine it like a person standing with your Dockerfile and reading each line.
+. When it sees the first instruction (usually FROM), it thinks:
+. "Okay, this is the base image. I will start building from here."
+
+1. FROM Instruction [BASE IMAGE]
+. The FROM instruction specifies the base image for your custom image. It sets the starting point
+for your Dockerfile.
+. It starts a new build stage and tells Docker which base image to use.
+. All the other instructions (like RUN, COPY, etc.) will be applied on top of this base image.
+Example:
+FROM tomcat: jre-20.8
+
+Multiple FROM Instructions:
+. You can use FROM more than once in the same Dockerfile.
+. This is used to create multiple stages (multi-stage builds).
+. When a new FROM comes, it will clear all previous settings and start a fresh stage.
+. You can even copy files from one stage to another using a stage name.
+
+2. MAINTAINER (Optional - Old Method)
+MAINTAINER KKFunda
+This line tells who created or maintains the Docker image.
+It's just for information, not used by Docker engine for any logic.
+You can give your name and email here.
+This method is deprecated (old and not recommended now).
+Instead, use LABEL to give this kind of info.
+
+3. LABEL (Metadata)
+LABEL is used to add extra information (metadata) to the image.
+. This info is saved as key-value pairs.
+. It can include: Version,Description, Author, Name/email, Project name, etc.
+Examples:
+LABEL version="1.0"
+LABEL description="This is a sample Docker image"
+LABEL maintainer="KKFunda"
+LABEL email="kkfunda@gmail.com"
+LABEL company="KKFunda"
+You can use multiple LABEL lines or write them in a single line like this:
+LABEL version="1.0" description="Sample Image" company="KKFunda" email="kkfunda@gmail.com
+
+4.COPY Instruction
+The COPY instruction is used to copy files or directories from the host machine to the Docker
+image during the build process. It copies files from the build context (where the Dockerfile is
+located) to the specified destination in the image.
+COPY  
+Example:
+COPY target/web-app.war /usr/local/tomcat/webapps/web-app.war
+COPY ..
+. Copy everything from the current folder on your host (build context)
+. Into the current working directory inside the Docker image
+
+Use this when you want to copy your entire project folder into the image.
+Tip: Use a .dockerignore file to exclude files or folders you don't want to copy into the image
+
+5. ADD Instruction
+The ADD instruction is similar to copY, but it offers additional features. It can handle remote URLs
+and automatically extract tar files.
+. It can automatically extract compressed files (like .tar, .gz) into the image.
+. It can copy files from a URL directly into the image.
+ADD target/web-app.war /usr/local/tomcat/webapps/web-app.war
+ADD https://example.com/file.tar.gz /app/
+why ADD is not recommended often?
+Because:
+. It does more things automatically, which can be confusing.
+. For example, if you just want to copy a . tar.gz file, ADD will extract it, which you may not
+want.
+. So, better to use COPY unless you really need ADD features.
+When to use ADD vs COPY?
+. Use COPY for simple file and folder copying (recommended)
+. Use ADD only if you need the extra features like extracting compressed files or downloading
+from URL
+
+6. RUN Instruction
+The RUN instruction is used to execute commands or scripts during the image build process. It
+follows the order from top to bottom in the Dockerfile.
+Forms: Supports both Shell Form and Executable Form.
+1. Shell Form: This form runs commands in a shell, allowing for shell features like command
+chaining. Allowing logical operators like |, &&, and | |. It is useful when chaining commands or
+setting up pipelines.Example:
+  RUN mkdir /app && \
+      cp /src/* /app/ && \
+      useradd kkfunda && \
+      apt update -y && \
+      apt install git -y
+Executable Form: This form runs commands directly without a shell.
+Example:
+RUN ["echo", "Hello World"]
+COPY
+Note: It's generally recommended to use Shell Form for RUN instructions for better compatibility
+with shell features. Additionally, using logical operations can help minimize the number of layers in
+your image, improving efficiency.
+Shell Form vs. Executable Form
+Shell Form:
+. Runs commands in a shell (e.g., /bin/sh -c),
+. Allows for complex interactions and supports shell features like &&, | |, pipes (|), loops, etc.
+. Can create child processes, such as connecting to a database.
+
+Executable Form:
+. Runs commands directly without a shell.
+· Executes as a single parent process.
+. More predictable and straightforward, with less overhead.
+. Used to define default commands or scripts that will execute when the container starts.
+. Supports both Shell Form and Executable Form.
+. The CMD command can be overridden by passing a different command when starting the
+container.
+. You can write multiple CMD instructions in a Dockerfile,
+but only the last one will be used - earlier ones will be overwritten.
+. CMD does not create a new image layer.
+. Instead, it is stored as metadata inside the image.
+. When you run the container, Docker reads this metadata and executes the CMD.
+CMD ["python3", "app.py"]
+CMD echo "Hello, Docker!" # Shell Form
+
+# Executable Form
+COPY
+
+8.ENTRYPOINT Instruction
+. Specifies commands or scripts that always run when the container starts, regardless of any
+extra arguments provided.
+. Executes at runtime, just like CMD.
+. Multiple ENTRYPOINT instructions can be used, but only the last one takes effect.
+. Supports both Shell Form and Executable Form syntax.
+. ENTRYPOINT cannot be overridden at runtime; any arguments passed when starting the
+container are added to the ENTRYPOINT command.
+. Neither CMD nor ENTRYPOINT create additional layers in the Docker image.
+. Both are stored as metadata in the final image.
+When the container starts, Docker reads this metadata and executes the command
+accordingly.
+ENTRYPOINT ["python3", "app.py"] # Executable Form
+ENTRYPOINT echo "Hello, Docker!" # Shell Form
+ARG BASE_IMAGE=ubuntu: 20.04
+FROM ${BASE_IMAGE}
+
+9. ARG Instruction
+. Defines variables that are only available during the build process and can be used to pass
+build-time arguments.
+. Special Feature: It's the only instruction allowed before the FROM instruction in a
+Dockerfile.
+. You can define multiple arguments in a Dockerfile using ARG. These arguments can be used in
+other instructions during the build.
+. Important Notes:
+O ARG values are only available during build time.
+o After the image is built, the values of ARG are not accessible inside running containers.
+
+10. ENV Instruction
+. Purpose: Sets environment variables that will be available both during the image build
+process and at runtime when the container runs.
+. Common Use Cases: Path settings, configuration parameters, API keys, etc.
+. Scope: Environment variables set with ENV persist across all layers in the Dockerfile
+
+ENV HOME=/usr/local/tomcat/webapps/
+COPY target/web-app.war $HOME
+RUN echo $HOME
+. In this example:
+o The ENV instruction sets the HOME variable to /usr/local/tomcat/webapps/.
+o The COPY instruction uses the HOME variable to copy the web-app. war file to that directory.
+o The RUN instruction prints the value of HOME during the image build process.
+
+11. WORKDIR Instruction
+. WORKDIR sets the working directory inside the container for any following instructions
+like RUN, CMD, COPY, or ADD.
+. It's like using the cd (change directory) command in Linux.Key Features:
+. If the directory does not exist, Docker will automatically create it.
+. It helps avoid using full paths in every command.
+. You can set multiple nested WORKDIRs, and Docker will build the entire path.
+
+Example:
+# Base image with Tomcat
+FROM tomcat:9.0
+# Set working directory to Tomcat's webapps folder
+WORKDIR /usr/local/tomcat/webapps/myapp
+# If '/usr/local/tomcat/webapps/myapp' does not exist, Docker creates it.
+# If it already exists (e.g., from base image), Docker just enters it.
+# Copy the WAR file into the working directory (now inside /webapps/myapp)
+COPY target/web-app.war .
+# You can run installation or setup commands here if needed
+# RUN some-setup.sh
+# Start Tomcat (already default, but added for clarity)
+CMD ["catalina.sh", "run"]
+Here, all operations happen inside /app directory in the container.
+
+Why Use WORKDIR?
+. Makes your Dockerfile cleaner and easier to read
+. Improves maintainability by avoiding repeated path usage
+. Helps with layer caching, as each WORKDIR creates a stable build step.
+
+12. USER Instruction
+. Sets the user that runs the container's processes.
+. Helps improve security by avoiding running as the root (admin) user.
+. You can create a custom user with the RUN instruction and then switch to it using USER.
+# Start from official Tomcat base image
+FROM tomcat:9.0
+# Set working directory
+WORKDIR /usr/local/tomcat/webapps
+# Copy your WAR file into the container
+COPY target/web-app.war .
+# Create a user named 'kkfunda' with home and bash shell
+RUN useradd -ms /bin/bash kkkfunda
+# Give permission to 'kkfunda' user for the webapps directory
+RUN chown -R kkfunda:kkfunda /usr/local/tomcat/webapps
+# Switch to 'kkfunda' user
+USER kkfunda
+# Start Tomcat server
+CMD ["catalina.sh", "run"]
+Running container as normal user (not root) is safer - if someone hacks it, they can't damage
+your full system.
+Creating Users in Docker: Full vs Basic
+
+Option 1: Full User Setup (Recommended)
+RUN useradd -ms /bin/bash appuser
+. -m: Creates a home directory for the user (/home/appuser)
+. -s /bin/bash: Sets the login shell to Bash
+This is better if your app or scripts expect:
+. A proper user environment
+. The use of ~ (home directory)
+. A shell like Bash for running commands
+
+Option 2: Minimal User Setup (Lightweight)
+RUN useradd appuser
+. Creates a user named appuser
+. No home directory
+. No shell configured
+. Good for lightweight containers
+. Works fine if your app doesn't rely on user-specific settings or shell access
+
+13. EXPOSE Instruction
+. Declares the port on which the container's app will listen.
+. It's informational - it doesn't actually publish the port, but it documents it for users or
+tools.
+. You declare one or more ports that your containerized app uses.
+. To make the port accessible from outside, use -p or -- publish when running the container.
+Example:
+# Expose port 8080 for Tomcat
+EXPOSE 8080
+# Start Tomcat server
+CMD ["catalina.sh", "run"]
+# Expose port 8080 for Tomcat
+EXPOSE 8080
+# Start Tomcat server
+CMD ["catalina.sh", "run"]
+Running the container:
+docker run -d -p 8081:8080
+-- name tomcat tomcat:latest
+This maps your host's port 8081 to the container's port 8080.
+
+
+
+Dockerfile Practical Demo:
+--------------------------
+Let's start with a basic Dockerfile:
+. When you run docker build, the Dockerfile is sent to the Docker daemon.
+. Docker reads each instruction one by one.
+. For each instruction (FROM, RUN,etc.), Docker creates an intermediate container behind the scenes.
+. That intermediate container is committed into an image layer, and then removed after the
+step is done.
+Use docker history to show the layers created for each instruction:
+. You'll see one layer for each instructions.
+Rebuild Without Changes (Build Cache Demo)
+Now rebuild the exact same Dockerfile:
+This time, Docker checks its cache. Since no lines changed, Docker uses the cached result for each instruction.
+Output will say: No steps are re-executed!
+Modify the Dockerfile (Trigger Cache Invalidation)
+New line inserted.
+. Line 5 has changed, so Docker does not use the cache from this point.
+. Docker uses cache up to the instruction that changes.
+Once a line (like line 5) is changed, all subsequent steps will be rebuilt, even if they didn't
+change.
+. After the cache breaks (because of a change),
+. Docker starts a new intermediate container to run the instruction.
+. Then the intermediate container is removed automatically.
+
+CMD Instruction
+Sample file
+. All RUN instructions are executed during image build
+CMD is not executed during build but runs only when the container is started.
+. It behaves like the default command that runs only when the container starts, not during
+the image build.
+. CMD is like default command. If we don't give anything while running container, this will run.
+. But if we pass something in the command line, it will overwrite the CMD.
+. It overrides "KKfunda" with "Welcome to KKFunda".
+CMD Instruction - Only the Last One Works
+If there are multiple CMD instructions in the file, only the last one is applied in the final image.
+This is because Docker images keep only one CMD value in the image config, and it gets overwritten each time CMD is used.
+Here, the last CMD instruction determines the date that is displayed.
+Once an image is built, you can examine its internal configuration to see the labels and the actual
+CMD that will run when the container starts.
+COPY + Script Execution
+You can copy a shell script (e.g., test.sh) into the image and execute it.
+. you must have a test. sh file present in the same directory as your Dockerfile before building
+the image.
+. This is how container images can handle complex setups or application start sequences.
+. When we run the container, the CMD instruction is triggered - it runs our shell script, which
+executes the commands we defined inside it.
+Check Image Layers with docker history
+
+. Each RUN instruction creates a separate image layer.
+. Total layers = 4 (plus base image layer).
+. More layers increase image size and can slow build times.
+. you want to optimize the Dockerfile using logical AND (&&) operators to combine
+multiple RUN commands. This helps reduce image layers and keeps it efficient.
+buid the image
+All the commands run together in one single layer
+This means the total number of layers in reduced
+. Check the image layers for the optimized image - this time, the number of layers
+is reduced compared to before.
+
+As a result, the image becomes smaller, caching works better, and builds run faster.
+
+ENTRYPOINT in Docker
+. ENTRYPOINT is similar to CMD, but stronger.
+. When container runs, ENTRYPOINT always executes first.
+. Now you can see the execution - the ENTRYPOINT instruction is triggered when the container
+runs.
+. It behaves like the main command that always runs when the container starts, not during the
+image build.
+. If you provide a command in docker run, it doesn't override the ENTRYPOINT. Instead, it gets
+added as arguments to it.
+ENTRYPOINT Instruction - Only the Last One Works
+If there are multiple ENTRYPOINT instructions in the file, only the last one is used in the final image.
+This is because Docker images retain only one ENTRYPOINT value.
+Here, the last ENTRYPOINT instruction sets the command that runs when the container starts.
+
+How ENTRYPOINT and CMD Work Together
+. ENTRYPOINT sets the main executable or command that always runs when the container
+starts.
+. CMD provides default arguments to the ENTRYPOINT or acts as a fallback command if no
+arguments are given during runtime.
+
+What happens in the first Dockerfile?
+. CMD ["echo", "how are you"] (exec form)
+. ENTRYPOINT ["echo", "kkfunda"] (exec form)
+. ENTRYPOINT sets the base command as echo kkfunda
+. CMD provides default arguments "how are you" to ENTRYPOINT
+. When container runs, Docker combines ENTRYPOINT + CMD args:
+echo kkfunda "how are you"
+. Output: kkfunda how are you
+
+What happens in the second Dockerfile?
+. CMD echo how are you (shell form)
+. ENTRYPOINT ["echo", "kkfunda"] (exec form)
+. ENTRYPOINT is like a fixed start (echo kkfunda)
+. CMD (in shell form) is treated as a string command, not individual arguments
+. So Docker passes CMD as a string to ENTRYPOINT
+. Result: echo prints everything after kkfunda as a plain string
+. Output:kkfunda /bin/sh -c echo how are you
+
+ARG Instruction
+. In Docker, the ARG instruction allows us to define build-time variables.
+. ARG Can Be Declared Anywhere in the Dockerfile
+. You don't need to declare ARG at the top.
+. You can place it anywhere in the Dockerfile, before or after FROM, and even multiple times.
+
+Two Ways to Use ARG in Dockerfiles
+Method 1: ARG Before FROM - Dynamic Base Image
+
+. Here, you're declaring the ARG before the FROM instruction, so it can be used to dynamically
+set the base image.
+. You can override this value during build .
+Why Does Docker Still Use Cache After Changing an ARG Before FROM?
+When you change an ARG declared before the FROM line, Docker only cares about the resolved
+value used in the FROM instruction. If the resolved base image (like debian: 12.0) stays the same,
+Docker treats the build as identical and uses the cache for all following steps.
+This means:
+. Docker detects that the actual base image hasn't changed.
+. It reuses the cached layers for all following steps.
+. Cache is only invalidated if the resolved base image changes (for example, switching
+from debian: 12.0 to debian:12.1).
+
+Method 2: ARG as a Tag Part Only
+. Hardcoding the image name (debian) and only using the tag part (e.g., 11.0, 12.0) as
+a variable.Build
+docker build -t myimage -build-arg baselmageTag=11.0 .
+. Keeps the image source (like debian) fixed
+. Allows easy version upgrades just by changing the tag
+
+ENV
+. ENV values are persisted in the final image and available at runtime.
+. You can use them in RUN, COPY, and in your application.
+. Unlike ARG, ENV is visible in image metadata and available at runtime without redeclaration.
+. We're creating an environment variable called HOME.
+. It points to the Tomcat webapps directory.
+. This will be used to place our .war file inside the correct folder.
+
+COPY target/web-app.war $HOME
+. $HOME will expand to /usr/local/tomcat/webapps/.
+Verify with docker image inspect
+After building the image, you can check that the ENV variable is set by running:
+
+WORKDIR
+WORKDIR sets the current working directory inside the container.
+Once you use WORKDIR, any relative path like . refers to that working directory.
+
+FROM tomcat: 9.0
+# Set working directory to Tomcat webapps directory
+WORKDIR /usr/local/tomcat/webapps
+
+# Copy the WAR file into the current working directory (/usr/local/tomcat/webapps/)
+COPY target/web-app.war
+
+# Print the current directory to verify
+RUN echo "Working directory is: $(pwd)"
+
+# Start Tomcat
+CMD ["catalina.sh", "run"]
+When you use:
+WORKDIR /usr/local/tomcat/webapps/
+
+Docker sets that as the current working directory inside the image. From this point onward:
+. You don't need to write full paths to that directory.
+. Any relative path (like . or myfolder/) refers to /usr/local/tomcat/webapps/.
+Example:
+WORKDIR /usr/local/tomcat/webapps/
+WORKDIR /usr/local/tomcat/webapps/
+COPY target/web-app.war .
+
+
+. Copies target/web-app.war from your host machine (build context)
+. To /usr/local/tomcat/webapps/web-app.war inside the container
+
+No need to write:
+COPY target/web-app.war /usr/local/tomcat/webapps/
+Because WORKDIR already tells Docker, "We are working inside /usr/local/tomcat/webapps/ now."
+WORKDIR is not just used during the build - it's also the default working directory at runtime.
+WORKDIR sets the context for relative paths - and Docker stores it in the image. You can check it
+any time with docker image inspect."
+EXPOSE - Document Container Ports
+The EXPOSE instruction tells Docker which port(s) the container listens on at runtime. It's purely
+informational-it does not publish the port.
+EXPOSE 8080
