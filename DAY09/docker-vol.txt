@@ -262,3 +262,40 @@ delete the mongo db container and recreate, data is available
 
 
 NOTE: external(network) volumes(EBS) we will discuss in AWS
+
+
+
+
+
+BLOG NOTES:
+----------
+
+1 Why You Must Care About Docker Data Persistence
+2 How to Stop This Data Loss in Docker?
+2.1 Bind Mounts
+
+2.2 Docker Volumes
+2.3 1. Local Volume
+2.4 2. Remote or Network Volume (NFS, EBS, S3)
+2.5 1.Clone the Demo Project
+2.6 2. Build Docker Image (Multi-Stage Already Present)
+2.7 3. Create a Custom Docker Network
+2.8 4. Run Spring Boot App (Without MongoDB)
+2.9 5. Start MongoDB Container (Without Backup)
+2.10 6. Verify Data in MongoDB
+2.11 Check Again - Data Lost!
+2.12 Why Data Is Lost?
+3 Solution 1: Bind Mount for MongoDB
+3.11.Create Backup Folder on Host
+3.2 2. Start MongoDB with Bind Mount
+3.3 3. Add Users Again
+3.4 4.Simulate Crash Again
+3.5 5.Recreate Mongo with Same Mount
+4 Solution 2: Docker Volumes
+4.1 Step 1: Create Docker Volume
+4.2 Step 2: Remove Old Mongo Container (If Running)
+4.3 Step 3: Run MongoDB with Volume
+4.4 Step 4: Register Users in Your Application
+4.5 Step 5: Simulate a Crash (Delete Container)
+4.6 Step 6: Recreate Mongo Container Using the Same Volume
+4.7 Where Are Volumes Stored?
