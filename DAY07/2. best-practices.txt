@@ -205,3 +205,218 @@ FROM tomcat:9.0.100
 COPY --from=aaa /app/target/maven-web-app*.war /usr/local/tomcat/webapps/maven-web-app.war
 
 
+
+
+
+
+BLOG NOTES:
+----------
+1. Use Official Images (When Possible)
+Start your Dockerfile from a trusted and verified base image.
+. Official images are maintained by Docker or trusted vendors.
+. They are regularly patched for security vulnerabilities.
+. Better documentation and community support.
+. Avoid random or unofficial images unless you know the source and reason.
+
+2. Prefer Lightweight Base Images (Like Alpine)
+FROM node: 18-alpine
+COPY
+Alpine significantly reducing your final image size.
+Smaller images = faster builds, transfers, and deployments.
+Smaller attack surface.
+Note: Alpine can have compatibility issues with some native packages. Test before use.
+
+3. Update Images Regularly
+Use specific version tags instead of latest.
+. Update Docker Images from Time to Time
+Don't keep using the same old image. New updates fix bugs and security issues.
+. Use Specific Version Tags Instead of latest
+Instead of writing ubuntu: latest, use like ubuntu: 20.04.
+
+4. Avoid Copying Unnecessary Files
+Don't just blindly copy your entire project directory.
+What Happens If You Use COPY . . Carelessly?
+Docker copies ALL FILES from your project directory (the build context),
+When You Check Inside the Container:
+Dockerfile
+Jenkinsfile
+README.md
+kkdevops.txt
+pom.xml
+src
+catalina.2025-08-21.log
+. Your image is larger than needed
+. You've leaked local or sensitive files
+. Your build context was polluted
+Copy only what your container needs to run - nothing more.
+This keeps images smaller, faster, and more secure.
+Use a .dockerignore file to exclude:
+Even if a file is deleted later in the Dockerfile, it still exists in earlier image layers.
+We basically just create this .dockerignore file and list all the files and folders that we want to
+be ignored and when building the image, Docker will look at the contents and ignore anything
+specified inside.
+How . dockerignore Works
+. You create a file named .dockerignore in the same directory as your Dockerfile.
+. Inside, list all the files and folders you want to exclude from the Docker build context.
+. Docker will not send these files to the Docker daemon at all - they are completely excluded.
+# Common files to ignore
+.git
+.gitignore
+Dockerfile
+
+5. Combine Commands to Reduce Layers
+Each instruction creates a new image layer.
+This reduces image size and speeds up build time.
+
+6. Use Multi-Stage Builds
+Split your build and runtime environments.
+Each FROM instruction starts a new build stage
+You can selectively copy artifacts
+from one stage to another
+FROM maven:3.8.6-openjdk-8 as aaa
+WORKDIR /app
+COPY . .
+RUN mvn clean package
+FROM tomcat:8.0.20-jre8
+COPY --from=aaa /app/target/maven-web-app*.war /usr/local/tomcat/webapps/maven-web-app.war
+. Final image contains only what's needed to run the app.
+. No build tools or dev dependencies in the runtime image.
+
+7. Run as a Non-Root User
+By default, Docker containers run as root. This is risky.
+Use the Least Privileged User
+Create a dedicated user and group
+Don't forget to set required permissions
+Change to non-root user with USER directive
+# Create a group
+RUN groupadd kk_funda_group
+# Create a user with default primary group (usua
+RUN useradd -m kk_funda_user
+# Add user to kk_funda_group as secondary group
+RUN usermod -aG kk_funda_group kk_funda_user
+# switch to the new user
+USER kk_funda_user
+# Default command
+CMD ["bash"]
+. By default, Docker runs containers as the root user, which means full control inside the
+container. This can be risky because if someone hacks your container, they get full access.
+. To keep things safe, always run your app as a non-root user inside the container. This limits
+what the app can do and protects your system.
+. This way, even if something goes wrong, damage is limited.This approach follows the principle
+of least privilege - giving only the minimum access needed.
+
+8. Never Store Secrets in Dockerfiles
+Don't do this:
+ENV DB_PASSWORD=mysecret
+Do this instead:
+. Use environment variables set at runtime (e.g., via Kubernetes or Docker Compose).
+. Use external secrets managers like:
+o AWS Secrets Manager
+o HashiCorp Vault
+o Docker secrets (for Swarm)
+
+9. Clean Up Dangling Images and Containers
+Old containers, images, and volumes can pile up.
+# Cleanup script
+docker system prune -f
+docker volume prune -f
+Automate this daily using cron or Cl jobs.
+
+10. Use Metadata Labels
+Add useful info like maintainer, version, and description.
+LABEL maintainer="your@email.com"
+LABEL version="1.0"
+LABEL description="My web application image"
+. Easier image management and tracking
+. Helpful in automation and CI/CD
+
+11. Scan Images for Vulnerabilities
+Before you put your Docker images into use, it's important to check them for any security
+weaknesses or vulnerabilities.
+There are handy tools you can use to scan your images:
+. docker scan (uses Snyk technology)
+. Trivy
+. Grype
+Make it a habit to scan images:
+. While you are developing
+. Automatically in your build and deployment pipelines (CI/CD)
+. Before you upload images to any public or private repositories
+This way, you catch problems early and keep your apps safe.
+Conclusion:
+Building containers isn't just about making them work. It's about making them fast, safe, and
+reliable. Whether you're building microservices or simple apps, these best practices will help you
+ship code with confidence.
+. Use official + lightweight images (Alpine)
+. Minimize image size and layers
+. Never store secrets in Dockerfiles
+. Use .dockerignore + labels
+. Scan and update images regularly
+. Avoid running as root .
+
+Here are some practical examples of Docker best practices:
+1. Dockerfile Using Alpine Image
+When writing a Dockerfile, using a lightweight base image like Alpine Linux helps reduce image
+size and improves performance.
+FROM nginx : alpine
+COPY index.html /usr/share/nginx/html
+
+2. Alpine vs Ubuntu Package
+Alpine Linux
+. Base image: alpine: latest
+· Package manager: apk
+. Install command:
+RUN apk add curl
+· Auto-confirmation:
+Ubuntu / Debian
+· Base image: ubuntu: 22.04, debian, etc.
+. Package manager: apt or apt-get
+. Install command:
+No need for -y (it auto-confirms).
+RUN apt update && apt install -y curl
+. Auto-confirmation: -y is required to avoid interactive prompt.
+Here is a sample file and a guide on how to use packages in a Dockerfile.
+FROM alpine: latest
+MAINTAINER KKFUNDA <kkeducationblr@gmail.com>
+LABEL author="kkfunda"
+LABEL email="kkeducationblr@gmail.com"
+RUN echo "welcome to kkkfunda"
+COPY test.sh test.sh
+WORKDIR /opt/app
+RUN apk update
+RUN apk add git wget
+RUN mkdir -p /opt/app
+ENV HOME /opt/app
+RUN echo $HOME
+CMD ["echo","Hello"]
+
+3. Concept: In Multi-Stage Docker Builds
+# Stage 1: Build stage using Maven image
+FROM maven:3.8.6-openjdk-8 as build
+WORKDIR /app
+COPY . .
+RUN mvn clean package
+# Stage 2: Runtime stage using Tomcat image
+FROM tomcat:8.5.41-jdk8
+COPY --from=build /app/target/*.war /usr/local/tomcat/webapps/
+Important Clarification
+Stage 1
+. COPY . . - this copies all files including src/, pom. xml, etc.
+. It creates layers in the build stage only
+. Layer size can grow here, but this image is not the final output
+
+Stage 2
+. FROM tomcat ... starts a completely new image
+. This image has zero layers from the build stage unless you use COPY -- from
+. We only copy:
+COPY -- from=build /app/target/ *. war ...
+COPY
+. No src/, no pom.xml, no big layers get copied over
+Build the Image
+From the folder that contains your Dockerfile, src/, and pom. xml, run:
+Once the mvn clean package command succeeds in Stage 1, it creates a .war
+List Images to Confirm Look for your image named tomcatcustom.
+Inspect the Image (Check Layers) You'll see a list of layers This confirms only the WAR file was
+copied from the build stage.
+This small increase comes from the .war file that was copied from the build stage:
+. Base Tomcat image (tomcat:8.5.41-jdk8): ~522 MB
+. Your custom image after build: ~528 MB
