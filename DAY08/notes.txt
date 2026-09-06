@@ -183,8 +183,146 @@ Establishing connection between containers in different docker servers.
 
 
 
+BLOG NOTES:
+-----------
+0.1 Introduction
+1 Why is Docker Networking Important?
+2 Containers Have Their Own IP Addresses
+3 1. Bridge (Default)
+3.1 Step1. Check Available Images and Run a Container (Default Settings)
+3.2 Step2. Inspect the Container
+3.3 Step 3.Now let's launch a second container named two
+3.4 Testing Container Communication (Default Bridge Network)
+3.5 Step 1: Enter container one and use curl to connect to two
+3.6 Step 2: Enter container two and curl back to one
+3.7 Testing Communication Using ping (Default Bridge Network)
+3.8 Step 3 : Enter container one and use ping to reach two
+3.9 use ping to reach two from one
+3.10 Step 4: Enter container two and ping back to one
+4 2. Custom Bridge Network in Docker
+4.1 Step 1: Create a Custom Bridge Network
+4.2 Step 2: Launch Containers on the Custom Network
+4.3 Step3.Inspect the Container
+4.4 Step 4.Create Container four in jio-network
+4.5 Step 5: Test Name-Based Communication
+4.6 Step 6: Connect a Container to an Additional Network
+4.7 Step 1: Connect one to jio-network
+4.8 Step 2: Verify using inspect
+4.9 Step 7: Docker Network: Create & Clean Up
+4.10 Optional: Remove a Specific Network
+4.11 Note:
+5 3.Host Network
+6 4. None Network
+6.0.1 When to Use:
+7 What is Docker ECR (Amazon Elastic Container Registry)?
+8 How to Push Docker Image to AWS ECR
+9 Step 1: Install unzip
+10 Step 2: Install AWS CLI in Linux
+11 Step 3: Get AWS Access Key & Secret Key
+12 Step 4: Configure AWS Credentials in Server
+13 Step 5: Create an ECR Repository
+14 Step 6: View Push Commands from the ECR Console
+15 Step 7: Authenticate Docker with ECR (Temporary Token)
+16 Step 8: Tag Your Existing Docker Image
+17 Step 9: Push Image to ECR
+18 Step 10: Pull the Image from ECR (Test It)
+19 Summary
 
 
+Introduction
+In the world of containerization, Docker networking plays a vital role in enabling
+communication between containers, services, and the outside world. Whether you're building
+simple applications or managing complex microservices architectures, understanding how
+Docker containers interact over different network types is key to building secure, scalable,
+and reliable environments.
+This guide walks you through:
+. The importance of Docker networking
+. Key Docker network types like bridge, host, none, and custom networks
+. Testing with containers using default and custom bridge networks
+. Using container names for communication with Docker's internal DNS
+. Steps to connect containers to multiple networks
+. And finally, pushing Docker images to AWS Elastic Container Registry (ECR)-a secure and
+scalable way to manage your container images in the cloud.
+Why is Docker Networking Important?
+Docker networking plays a crucial role in containerized environments. It ensures that:
+. Containers can talk to each other (communication).
+. Containers can access the internet.
+. You can control the visibility and isolate services.
+When working on microservices, proper networking ensures that your services are discoverable,
+secure, and scalable.
+Containers Have Their Own IP Addresses
+Yes! Every Docker container gets its own private IP address within the network it belongs to. This
+IP is:
+. Unique within the Docker network
+. Assigned dynamically by Docker's internal DNS system
+. Can be seen using docker inspect <container>
+This IP allows containers to talk directly to each other-even without exposing ports to the host.
+In Docker, we have three networks:
+· bridge
+. host
+none
+1. Bridge (Default)
+. This is the default network driver.
+. When you create a container without specifying a network, it goes into the default
+bridge network.
+. Containers can talk to each other using IP, but not by name unless it's a custom bridge.
+Example:
+Step1. Check Available Images and Run a Container (Default Settings)
+Let's start by checking the local images we have:
+Now run a container without specifying any network:
+Since we didn't specify a network, Docker automatically connects it to the bridge network.
+
+Step2. Inspect the Container
+To check which network the container is in and its IP address, run:
+This confirms:
+. The container is connected to the default bridge network
+. It was assigned a private IP address (172.17.0.2)
+
+Step 3.Now let's launch a second container named two
+This launches two using the same bridge network by default.
+List the container and inspect it.
+. Look for the Networks section: Scroll down and look for the Networks section. You'll see that
+both containers are connected to the bridge network.
+Since we didn't specify any network while launching the containers, Docker automatically
+connected them to the default bridge network. So, both one and two are part of the same
+network by default.
+
+Testing Container Communication (Default Bridge Network)
+You can ping or curl using IP addresses only.
+We already have:
+. Container one: IP -> 172.17.0.2
+. Container two: IP -> 172.17.0.3
+curl -v telnet://<ip> :< port> checks TCP connection.
+Step 1: Enter container one and use curl to connect to two
+docker exec -it one bash
+curl -v telnet: //172.17.0.3:8080
+If two is running a service (like a web server), this should connect.
+
+Step 2: Enter container two and curl back to one
+Again, you'll get a response only if a service is running on the other side - but this shows they
+can reach each other by IP.
+This proves that containers on the default bridge network can communicate via IP, even without
+a custom network.
+Testing Communication Using ping (Default Bridge Network)
+
+Step 3 : Enter container one and use ping to reach two
+If the ping command is not found, update and install it inside the container.
+# Inside container:
+yum update -y
+yum install -y iputils
+To install ping (part of iputils) in YUM-based containers:
+use ping to reach two from one
+. ping sends ICMP Echo Request packets to the specified IP address.
+. If the target container is running and connected to the same network, it replies with ICMP
+Echo Reply packets.
+. This confirms network-layer connectivity (i.e., the containers can see each other over the
+network).
+Note:
+. ping uses ICMP (Internet Control Message Protocol), not TCP or UDP.
+. It operates at the network layer (Layer 3) of the OSI model.
+. It does not check if a specific port or service is running, only if the host is reachable.
+
+Step 4: Enter container two and ping back to one
 
 
 
