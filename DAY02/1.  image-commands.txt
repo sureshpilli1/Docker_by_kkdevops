@@ -158,6 +158,18 @@ docker exec -it javawebapp /bin/bash
 ```
 
 
+what is meant by netstat -tunlap
+--------------------------------
+
+
+| Option | Full form | Meaning                                                                  |
+| ------ | --------- | ------------------------------------------------------------------------ |
+| `-t`   | TCP       | Show TCP connections                                                     |
+| `-u`   | UDP       | Show UDP connections                                                     |
+| `-n`   | Numeric   | Show IP addresses and port numbers as numbers instead of resolving names |
+| `-l`   | Listening | Show only listening sockets                                              |
+| `-a`   | All       | Show all sockets/connections                                             |
+| `-p`   | Programs  | Show the process/program using the connection                            |
 
 
 
