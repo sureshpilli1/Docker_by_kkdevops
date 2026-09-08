@@ -1,213 +1,110 @@
 Container commands
 ==================
 
-How to create a container?
---------------------------
-
+1.How to create a container?
 docker create : It will create a container, But it will not start the container(process)
-
 docker run : It will create a container and it will start the container(process)
-
 docker create -p 8080:8080 --name javawebapp kkeducation12345/java-web-app
-
 docker start javawebapp
-
 docker run -d -p 8080:8080 --name javawebapp1 kkeducation12345/java-web-app
 
-
-How to list the running containers?
------------------------------------
-
+2.How to list the running containers?
 docker ps or docker container ls --> running containers
-
 docker ps -a or docker container ls -a --> All the containers
 
-
-How to start and stop containers?
-----------------------------------
-
+3.How to start and stop containers?
 docker start <cid>
-
 docker stop <cid>
 
-How to delete containers?
---------------------------
-
+4.How to delete containers?
 docker rm <cid> --> for stopped state containers
-
 docker rm -f <cid>  ---> for running containers
 
-How to remove all conatners?
------------------------------
-
+5.How to remove all conatners?
 docker rm -f <cid> <cid> ......
-
 docker rm -f $(docker ps -q) --> It will remove all running conainers
-
 docker rm -f $(docker ps -aq) --> It will remove all conainers
 
-
-How to remove all stopeed conatainers?
---------------------------------------
-
+6.How to remove all stopeed conatainers?
 docker container prune
-
 docker rm -f $(docker ps --filter status="exited" -aq)
 
-
-How to rename the container?
-----------------------------
-
+7.How to rename the container?
 docker rename <cid/name> <new name>
 
-how to restart the container?
------------------------------
-
+8.how to restart the container?
 docker restart <cid/cname>
 
+9.How to pause the container process?
+docker pause <cid/cname>
+docker unpause <cid/cname>
 
+10.How to delete only paused containers?
+docker rm -f $(docker ps --filter status="paused")
+
+docker run --name ubuntucontainer ubuntu
+docker ps -a
+docker start ubuntucontainer
+
+11.How to create a container in interative mode?
+docker run -it --name test ubuntu /bin/bash
+
+12.How to trobule shoot or debug application which is running as a container?
+docker logs <cid/cname>
+docker logs --tail <number_of_lines> <cid/cname>
+docker logs -f <cid/cname>
+
+13.How to go inside the container?
+docker exec -it <cid/name> /bin/bash
+execute commands on running container
+docker exec 5a7b9937d4df ls 
+
+14.How to display whick process is running inside the container?
+docker top <cid/cname>
+
+15.How to display resource(RAM,CPU) details?
+docker stats <cid/cname>
+IQ: Is it possible to allocate cutom memory?
+Ans: Yes
+docker run --memory="512m" -d -p 8082:8080 --name javawebapp2 kkeducation12345/java-web-app:1
+docker run --memory="64m" -d -p 8082:8080 --name javawebapp2 kkeducation12345/java-web-app:1  --> Here container will be killed.
+docker inspect <cid> --> OOMKilled
+
+16.How to copy files from system to continer and container to system?
+docker cp five:/usr/local/tomcat/logs/catalina.2025-05-17.log catalina.2025-05-17.log
+docker cp demo.txt javawebapp:/usr/local/tomcat/
+
+17.what is the use of docker diff?
+docker diff <cid/cname>
+
+18.what is docker commit?
+docker commit <cid/cname> kkeducation12345/java-web-app:24
+
+19.How to inspect a container?
+docker inspect <cid/cname>
+docker inspect --format "{{.NetworkSettings.IPAddress}}" mavenapp
+docker inspect --format "{{.State.Pid}}" 0d2dab452ceb
+docker inspect --format "{{.NetworkSettings.IPAddress}},{{.State.Status}}" 0d2dab452ceb
+docker inspect --format "IP Address: {{.NetworkSettings.Networks.bridge.IPAddress}}, Name: {{.Name}}" mavenapp
 
 IQ: what is the difference between docker create and run?
 
 IQ: What is port publish or port mapping in docker?
-
+Port publishing = making a container port accessible through a host port.
+Port mapping = the HOST:CONTAINER relationship used to do that.
+docker run -p 8085:8080 myapp
+Left = outside/host
+Right = inside/container
 
 IQ: What is the difference between docker stop and docker kill?
-
-
 docker stop: not force kill
 docker kill: force kill
-
 docker stop will send SIGTERM first and then SIGKILL, It will kill the process with grace period.
-
  Whereas docker kill will send SIGKILL call, It will kill the process without grace period.
 
-
-How to pause the container process?
-------------------------------------
-
-docker pause <cid/cname>
-docker unpause <cid/cname>
-
-How to delete only paused containers?
--------------------------------------
-docker rm -f $(docker ps --filter status="paused")
-
-===================================================================
-
-
-docker run --name ubuntucontainer ubuntu
-
-docker ps -a
-
-docker start ubuntucontainer
-
-
-=====================================================================
-
-How to create a container in interative mode?
----------------------------------------------
-
-docker run -it --name test ubuntu /bin/bash
-
-
-
-How to trobule shoot or debug application which is running as a container?
----------------------------------------------------------------------------
-
-docker logs <cid/cname>
-
-docker logs --tail <number_of_lines> <cid/cname>
-
-docker logs -f <cid/cname>
-
-
-How to go inside the container?
--------------------------------
-
-docker exec -it <cid/name> /bin/bash
-
-
-execute commands on running container
--------------------------------------
-
-docker exec 5a7b9937d4df ls 
-
-How to display whick process is running inside the container?
--------------------------------------------------------------
-
-docker top <cid/cname>
-
-
-
-
-How to display resource(RAM,CPU) details?
------------------------------------------
-
-docker stats <cid/cname>
-
-IQ: Is it possible to allocate cutom memory?
-
-Ans: Yes
-
-docker run --memory="512m" -d -p 8082:8080 --name javawebapp2 kkeducation12345/java-web-app:1
-
-docker run --memory="64m" -d -p 8082:8080 --name javawebapp2 kkeducation12345/java-web-app:1  --> Here container will be killed.
-
-docker inspect <cid> --> OOMKilled
-
-
-
-How to copy files from system to continer and container to system?
---------------------------------------------------------------------
-
-
-docker cp five:/usr/local/tomcat/logs/catalina.2025-05-17.log catalina.2025-05-17.log
-
-
-docker cp demo.txt javawebapp:/usr/local/tomcat/
-
-
-
 IQ: what is the diff between COPY and docker cp?
-
 COPY is a docker file instruction using this we can copy to the image while building files/folders 
-
 docker cp Is a command copy files/dirs to container or to a system
-
-
-
-what is the use of docker diff?
--------------------------------
-
-docker diff <cid/cname>
-
-
-
-what is docker commit?
------------------------
-
-docker commit <cid/cname> kkeducation12345/java-web-app:24
-
-
-=================================================================================================================
-
-How to inspect a container?
----------------------------
-
-docker inspect <cid/cname>
-
-docker inspect --format "{{.NetworkSettings.IPAddress}}" mavenapp
-
-docker inspect --format "{{.State.Pid}}" 0d2dab452ceb
-
-docker inspect --format "{{.NetworkSettings.IPAddress}},{{.State.Status}}" 0d2dab452ceb
-
-docker inspect --format "IP Address: {{.NetworkSettings.Networks.bridge.IPAddress}}, Name: {{.Name}}" mavenapp
-
-
-
-
 
 
 
