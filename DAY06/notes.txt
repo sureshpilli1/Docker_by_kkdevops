@@ -250,6 +250,16 @@ ENTRYPOINT ["echo","Welcome"]
 
 9. ARG instruction
 -------------------
+. Defines variables that are only available during the build process and can be used to pass
+build-time arguments.
+. Special Feature: It's the only instruction allowed before the FROM instruction in a
+Dockerfile.
+. You can define multiple arguments in a Dockerfile using ARG. These arguments can be used in
+other instructions during the build.
+. Important Notes:
+O ARG values are only available during build time.
+o After the image is built, the values of ARG are not accessible inside running containers.
+
 
 -->Using the ARG we can define arguments for Dockerfile. we can use these in another instruction.
 --> you can define multiple arguments in a Dockerfile
@@ -291,6 +301,9 @@ FROM debian:$baseImageTag
 
 10. ENV
 ----------
+. Purpose: Sets environment variables that will be available both during the image build process and at runtime when the container runs.
+. Common Use Cases: Path settings, configuration parameters, API keys, etc.
+. Scope: Environment variables set with ENV persist across all layers in the Dockerfile
 --> ENV is used to set an environment variables, The are available for image and container.
 EX:
      ENV CATALINE_HOME /usr/local/tomcat
@@ -331,13 +344,31 @@ docker inspect imageone --> you will the env variables
 
 11. WORKDIR
 ------------
+. WORKDIR sets the working directory inside the container for any following instructions
+like RUN, CMD, COPY, or ADD.
+. It's like using the cd (change directory) command in Linux.Key Features:
+. If the directory does not exist, Docker will automatically create it.
+. It helps avoid using full paths in every command.
+. You can set multiple nested WORKDIRs, and Docker will build the entire path.
 
---> we can set working directory for an image/conatiner.
---> All sebsequent instructions will be processed under working directory.
---> It is working like cd command
+# Base image with Tomcat
+FROM tomcat:9.0
+# Set working directory to Tomcat's webapps folder
+WORKDIR /usr/local/tomcat/webapps/myapp
+# If '/usr/local/tomcat/webapps/myapp' does not exist, Docker creates it.
+# If it already exists (e.g., from base image), Docker just enters it.
+# Copy the WAR file into the working directory (now inside /webapps/myapp)
+COPY target/web-app.war .
+# You can run installation or setup commands here if needed
+# RUN some-setup.sh
+# Start Tomcat (already default, but added for clarity)
+CMD ["catalina.sh", "run"]
+Here, all operations happen inside /app directory in the container.
+Why Use WORKDIR?
+. Makes your Dockerfile cleaner and easier to read
+. Improves maintainability by avoiding repeated path usage
+. Helps with layer caching, as each WORKDIR creates a stable build step.
 
-
-EX: WORKDIR /usr/local/tomcat
 
 
  
@@ -359,19 +390,62 @@ RUN echo "welcome to kk devops"
 COPY abc.txt abc.txt
 
 
-12. USER
--------
---> USER is used to set user for the container or image
-EX: 
-RUN echo "hello"
-RUN useradd kkdevops
-USER kkdevops
-RUN echo "devops"
---> By default root user if you are not mention.
---> It is working as "su" command
-COPY abc.py /opt/abc.py [or] RUN cp abc.py /opt/abc.py
+12. USER Instruction
+. Sets the user that runs the container's processes.
+. Helps improve security by avoiding running as the root (admin) user.
+. You can create a custom user with the RUN instruction and then switch to it using USER.
+# Start from official Tomcat base image
+FROM tomcat:9.0
+# Set working directory
+WORKDIR /usr/local/tomcat/webapps
+# Copy your WAR file into the container
+COPY target/web-app.war .
+# Create a user named 'kkfunda' with home and bash shell
+RUN useradd -ms /bin/bash kkkfunda
+# Give permission to 'kkfunda' user for the webapps directory
+RUN chown -R kkfunda:kkfunda /usr/local/tomcat/webapps
+# Switch to 'kkfunda' user
+USER kkfunda
+# Start Tomcat server
+CMD ["catalina.sh", "run"]
+Running container as normal user (not root) is safer - if someone hacks it, they can't damage
+your full system.
+Creating Users in Docker: Full vs Basic
 
-13. EXPOSE
-----------
---> expose indicates which port is opened/used in the image.
-  EX: EXPOSE 8080
+Option 1: Full User Setup (Recommended)
+RUN useradd -ms /bin/bash appuser
+. -m: Creates a home directory for the user (/home/appuser)
+. -s /bin/bash: Sets the login shell to Bash
+This is better if your app or scripts expect:
+. A proper user environment
+. The use of ~ (home directory)
+. A shell like Bash for running commands
+
+Option 2: Minimal User Setup (Lightweight)
+RUN useradd appuser
+. Creates a user named appuser
+. No home directory
+. No shell configured
+. Good for lightweight containers
+. Works fine if your app doesn't rely on user-specific settings or shell access
+
+13. EXPOSE Instruction
+. Declares the port on which the container's app will listen.
+. It's informational - it doesn't actually publish the port, but it documents it for users or
+tools.
+. You declare one or more ports that your containerized app uses.
+. To make the port accessible from outside, use -p or -- publish when running the container.
+Example:
+# Expose port 8080 for Tomcat
+EXPOSE 8080
+# Start Tomcat server
+CMD ["catalina.sh", "run"]
+# Expose port 8080 for Tomcat
+EXPOSE 8080
+# Start Tomcat server
+CMD ["catalina.sh", "run"]
+Running the container:
+docker run -d -p 8081:8080
+-- name tomcat tomcat:latest
+This maps your host's port 8081 to the container's port 8080.
+
