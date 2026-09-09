@@ -299,3 +299,179 @@ BLOG NOTES:
 4.5 Step 5: Simulate a Crash (Delete Container)
 4.6 Step 6: Recreate Mongo Container Using the Same Volume
 4.7 Where Are Volumes Stored?
+
+
+
+
+
+Why You Must Care About Docker Data Persistence
+Imagine you're running a Spring Boot application inside Docker. The app is working well, allowing
+you to register users and store their data in MongoDB.
+Now suddenly one day ... your MongoDB container crashes
+You start it again ... but all the data is gone
+This happens because Docker containers are temporary. That means, when the container is
+deleted, the internal storage (file system) inside the container will also be removed.
+
+So, unless we do proper setup for saving data outside the container, everything will be lost if
+container stops or crashes.
+How to Stop This Data Loss in Docker?
+Docker gives us two powerful options to save our data outside the container:
+
+Bind Mounts
+. It will connect a folder from your host machine to a folder inside the container.
+. So, whatever data the container writes will be stored in your host system.
+. Even if container is removed, data is still safe in your system folder.
+
+Docker Volumes
+1. Local Volume
+
+. This is the default volume type in Docker.
+. Data is stored in this path: /var/lib/docker/volumes/
+. Useful for local development and even production.
+. Easy to backup and restore.
+. Docker handles everything (no need to create the folder yourself).
+
+2. Remote or Network Volume (NFS, EBS, S3)
+. Used when containers are running in different servers or clusters (like in cloud or
+Kubernetes).
+. Examples: AWS EBS, NFS mounts, S3 buckets
+. Good for big production setups, not required in normal Docker practice.
+
+In this guide, we will take a real project (Spring Boot + MongoDB), and we will simulate data
+loss first, then we will solve it using Bind Mounts and Docker Volumes.
+
+1.Clone the Demo Project
+git clone https://github.com/kkdevopsb4/spring-boot-mongo-docker-kkfunda.git
+cd spring-boot-mongo-docker-kkfunda
+The project includes a multi-stage Dockerfile, so no need to create one from scratch.
+2. Build Docker Image (Multi-Stage Already Present)
+docker build -t springapp .
+Next, check the image.
+3. Create a Custom Docker Network
+
+docker network create jio
+docker network ls
+
+Containers on the same custom Docker network can communicate using either container
+names (via Docker DNS) or IP addresses-but container names are simpler, more reliable, and
+easier to manage.
+
+4. Run Spring Boot App (Without MongoDB)
+docker run -d -p 8080:8080 -- name springappcontainer -- network jio -e
+MONGO_DB_HOSTNAME=mongo -e MONGO_DB_USERNAME=devdb -e MONGO_DB_PASSWORD=dev@123 springapp
+The environment variables:
+-e MONGO_DB_HOSTNAME=mongo
+-e MONGO_DB_USERNAME=devdb
+-e MONGO DB_PASSWORD=dev@123
+These must be provided by the developer of the Spring Boot application.
+must be read and used inside your Spring Boot application (usually
+from application.properties or application.yml).
+Open your browser to access the application:
+. Try to register a user. You get an error.
+Why? MongoDB container is not running yet!
+
+5. Start MongoDB Container (Without Backup)
+docker run -d -- name mongo -- network jio -e MONGO_INITDB_ROOT_USERNAME=devdb -e
+MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+COPY
+Important Notes:
+. These credentials (devdb / dev@123) must match with the Spring Boot application's MongoDB
+config.
+. If credentials don't match, the app will fail to connect to MongoDB.
+. The mongo image is automatically pulled from Docker Hub if not present locally.
+Try Adding Users Again
+Go to UI - Register users -> Works fine!
+
+6. Verify Data in MongoDB
+Step 1: Enter MongoDB Container
+docker exec -it mongo bash
+This opens an interactive shell inside the running mongo container.
+Connect to MongoDB using mongosh
+mongosh -- host localhost:27017 -u devdb -p dev@123
+mongosh: MongoDB shell client.
+-- host localhost:27017: Connect to MongoDB running locally inside the container.
+-u devdb: Username.
+-p dev@123: Password.
+show databases;
+use users
+db.users.find();
+show databases; It lists all available databases in the current MongoDB instance
+Now Simulate a Crash
+docker rm -f mongo
+This forcefully removes the MongoDB container along with any data inside it (since it wasn't
+persisted externally).
+
+Recreate MongoDB
+docker run -d -- name mongo -- network jio -e MONGO_INITDB_ROOT_USERNAME=devdb -e
+MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+This creates a fresh MongoDB container with a new, empty internal filesystem.
+The users database and its data are gone.
+Cheek Again - Dota Loctl
+docker rm -f mongo
+Why Data Is Lost?
+Remove the container again, and this time we will use volumes and mounts:
+Because you did not use a volume or bind mount to persist MongoDB data outside the container.
+When a container is removed, its internal storage (including your users collection) is deleted too.
+
+Solution 1: Bind Mount for MongoDB
+1.Create Backup Folder on Host
+mkdir mongo-bkp
+We need to bind this host path to the internal MongoDB path /data/db, because that's where
+MongoDB stores its database files inside the container.
+. /data/db is the default data path inside MongoDB container.
+. Your host path: /home/ubuntu/spring-boot-mongo-docker-kkfunda/mongo-bkp
+
+2. Start MongoDB with Bind Mount
+Now that both containers are running:
+. MongoDB is running with a bind mount for persistent data.
+. Spring Boot app is running and connected to MongoDB via environment variables.
+
+3. Add Users Again
+. Open the application in your browser (e.g., http://<your-public-ip>:8080)
+. Try registering some users using the app interface.
+. The app is working and able to register users.
+. Data gets saved to MongoDB inside the container.
+. Since MongoDB is using a bind mount, the data is also saved on your host system:
+
+4.Simulate Crash Again
+docker rm -f mongo
+
+5.Recreate Mongo with Same Mount
+docker run -d -- name mongo -v /home/ubuntu/spring-boot-mongo-docker-kkfunda/mongo-
+bkp:/data/db -- network jio -e MONGO_INITDB_ROOT_USERNAME=devdb -e
+MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+Data Restored!
+Solution 2: Docker Volumes
+Step 1: Create Docker Volume
+We first create a Docker-managed volume named jiovolume.
+docker volume create jiovolume
+docker volume ls
+Step 2: Remove Old Mongo Container (If Running)
+docker rm -f mongo
+. This removes the existing Mongo container so that we can run a new one with the volume
+attached.
+Step 3: Run MongoDB with Volume
+Now let's run a new MongoDB container using the volume jiovolume for storing its database files:
+All data now goes into the volume jiovolume.
+docker run -d -- name mongo -v jiovolume:/data/db -- network jio -e
+MONGO_INITDB_ROOT_USERNAME=devdb -e MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+
+Step 4: Register Users in Your Application
+. Register a few users using the web UI. These user records are stored in MongoDB, and
+because we used a volume, the data will be safe even if the container crashes.
+Step 5: Simulate a Crash (Delete Container)
+Now let's assume a crash happens. We'll manually delete the MongoDB container:
+docker rm -f mongo
+Remember: containers are removed, but volumes are not affected.
+Step 6: Recreate Mongo Container Using the Same Volume
+Now run MongoDB again, using the same volume as before:
+docker run -d -- name mongo -v jiovolume:/data/db -- network jio -e
+MONGO_INITDB_ROOT_USERNAME=devdb -e MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+Now open your application again and check all the user data is still there!
+. Because the data was not stored inside the container, but inside the Docker volume
+(jiovolume), which lives outside the container. Even after deleting and recreating the
+container, the data persisted.
+
+Where Are Volumes Stored?
+sudo 1s -1 /var/lib/docker/volumes
+go through the blog for difference between bind mount and docker volume
