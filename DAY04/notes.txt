@@ -10,6 +10,11 @@ Example:
 FROM tomcat:9.0.100
 COPY target/maven-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
 RUN echo "hello kk funda"
+Inside Docker (Instruction Handler):
+Inside Docker's engine (written in Go), there is something called an instruction handler. You can
+imagine it like a person standing with your Dockerfile and reading each line.
+. When it sees the first instruction (usually FROM), it thinks:
+. "Okay, this is the base image. I will start building from here."
 
 1. Base Image
 -------------
@@ -18,6 +23,11 @@ FROM <image>:<tag>
 --> This is the starting point from which your image is built. 
 --> Common base images include official images for operating systems like Ubuntu or Alpine, or language-specific images like java or Node.js.
 Example: FROM ubuntu:20.04
+Multiple FROM Instructions:
+. You can use FROM more than once in the same Dockerfile.
+. This is used to create multiple stages (multi-stage builds).
+. When a new FROM comes, it will clear all previous settings and start a fresh stage.
+. You can even copy files from one stage to another using a stage name.
 
 2. Maintainer (Optional)
 ------------------------
@@ -42,6 +52,8 @@ COPY <src> <dest>
 Purpose: Copies files or directories from the host machine to the image. 
 The source path is relative to the build context (the directory containing the Dockerfile), and the destination path is inside the image.
 Example: COPY target/mavan-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
+build context (where the Dockerfile is located)
+Tip: Use a .dockerignore file to exclude files or folders you don't want to copy into the image
 
          COPY . .
     
@@ -64,8 +76,9 @@ use cases: 1. cretaing a directory
            2. execute a software
            3. unzip any zip file etc..
 EX:
-   shell form
-   ----------
+shell form: This form runs commands in a shell, allowing for shell features like command chaining.
+Allowing logical operators like |, &&, and | |. It is useful when chaining commands or setting up pipelines.
+Example:
    RUN mkdir -p /opt/app
    RUN tar -xvzf /opt/apache-tomcat.tar.gz
    RUN useradd kkfunda
@@ -73,13 +86,37 @@ EX:
    RUN ./setup.sh
 
 
-   executable form
-   ---------------
+executable form:This form runs commands directly without a shell.
    RUN ["apt-get", "install", "-y", "vim"]
    RUN ["/bin/sh", "setup.sh"]
    RUN ["useradd","kkfunda"]
 
 NOTE: please use shell form for RUN instructions, so we can replace variables easily.
+Note: It's generally recommended to use Shell Form for RUN instructions for better compatibility
+with shell features. Additionally, using logical operations can help minimize the number of layers in
+your image, improving efficiency.
+Shell Form vs. Executable Form
+Shell Form:
+. Runs commands in a shell (e.g., /bin/sh -c),
+. Allows for complex interactions and supports shell features like &&, | |, pipes (|), loops, etc.
+. Can create child processes, such as connecting to a database.
+
+Executable Form:
+. Runs commands directly without a shell.
+· Executes as a single parent process.
+. More predictable and straightforward, with less overhead.
+. Used to define default commands or scripts that will execute when the container starts.
+. Supports both Shell Form and Executable Form.
+. The CMD command can be overridden by passing a different command when starting the
+container.
+. You can write multiple CMD instructions in a Dockerfile,
+but only the last one will be used - earlier ones will be overwritten.
+. CMD does not create a new image layer.
+. Instead, it is stored as metadata inside the image.
+. When you run the container, Docker reads this metadata and executes the CMD.
+CMD ["python3", "app.py"]
+CMD echo "Hello, Docker!" # Shell Form
+
 
 7. CMD
 ------
@@ -141,7 +178,21 @@ IQ] can you have a more than one CMD in a Dockerfile?
 -->  ENTRYPOINT instruction used to execute a commands/ scripts etc.
 EX: ENTRYPOINT java -jar app.jar  --> shell form
     ENTRYPOINT ["java", "-jar", "app.jar"]--> executable form
-
+. Specifies commands or scripts that always run when the container starts, regardless of any
+extra arguments provided.
+. Executes at runtime, just like CMD.
+. Multiple ENTRYPOINT instructions can be used, but only the last one takes effect.
+. Supports both Shell Form and Executable Form syntax.
+. ENTRYPOINT cannot be overridden at runtime; any arguments passed when starting the
+container are added to the ENTRYPOINT command.
+. Neither CMD nor ENTRYPOINT create additional layers in the Docker image.
+. Both are stored as metadata in the final image.
+When the container starts, Docker reads this metadata and executes the command
+accordingly.
+ENTRYPOINT ["python3", "app.py"] # Executable Form
+ENTRYPOINT echo "Hello, Docker!" # Shell Form
+ARG BASE_IMAGE=ubuntu: 20.04
+FROM ${BASE_IMAGE}
 
 IQ] what is the difference between CMD and ENTRYPOINT?
 ANS:
