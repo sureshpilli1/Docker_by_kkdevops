@@ -1,29 +1,13 @@
 Docker Best Practices
---------------------
-
 1. Try to use offical images only to build your own images(custom images)
-
 2. try to use alpine images as base images where its possible/available.
-
 3. Don't copy/add  unnecessary files/folders which are not required,  size of image will increase, If you are not interested to copy files or dirs, Then keep those in .dockerignore file.
-
-
    --> Don't install unnecessary softwares also
-
 COPY . .
-
 4. Try to redue the number of layers of an image as much as possible, By combining related 	commands to RUN instruction.
-
 5. Use multi stage docker builds to reduse the size and number of layers of a image.
-
 6. Try to run container as a non-root user.
-
 7. Run a shell script to remove unused and dangling images on daily basis.
-
-
-
-
-
 
 Docker file 1
 -------------
