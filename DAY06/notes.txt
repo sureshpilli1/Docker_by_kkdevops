@@ -93,6 +93,10 @@ docker build -t firstimage .
 
 --> add some instructions and build to see the cache 
 
+Docker build cache is a mechanism Docker uses to reuse results from previous docker build commands instead of doing the same work again.
+This makes Docker image building much faster.
+
+
 IQ] How to skip the build cache?
 
  docker build --no-cache -t firstimage1 .
