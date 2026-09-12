@@ -76,6 +76,7 @@ Ans: you can use && operator to merge all RUN instruction.
 
 
 IQ] what is docker build cahce?
+Docker build cache is a mechanism Docker uses to reuse results from previous docker build commands instead of doing the same work again.
 
 
 IQ] what if we delete all the images and again build the docker file? what happens?
@@ -93,8 +94,109 @@ docker build -t firstimage .
 
 --> add some instructions and build to see the cache 
 
+
 Docker build cache is a mechanism Docker uses to reuse results from previous docker build commands instead of doing the same work again.
 This makes Docker image building much faster.
+
+FROM ubuntu:24.04
+RUN apt update && apt install -y nginx
+COPY app.py /app/app.py
+CMD ["python3", "/app/app.py"]
+
+The first time you build:
+docker build -t myapp .
+Docker has to execute everything:
+FROM ubuntu
+   ↓
+RUN apt update + install nginx
+   ↓
+COPY app.py
+   ↓
+CMD
+   ↓
+Image
+Docker stores the results of these steps in its build cache.
+Now you change app.py
+
+You run:
+docker build -t myapp .
+Docker checks each Dockerfile instruction.
+It may do:
+FROM ubuntu:24.04
+       ↓
+    CACHE HIT ✅
+       ↓
+RUN apt update && apt install nginx
+       ↓
+    CACHE HIT ✅
+       ↓
+COPY app.py
+       ↓
+    changed ❌
+       ↓
+execute COPY again
+
+So Docker doesn't reinstall nginx again.
+That's the main benefit of the cache.
+Docker tries to reuse each previous build layer if nothing relevant has changed.
+Once a particular step needs rebuilding, later steps generally need to be rebuilt as well.
+
+Why Dockerfile order matters
+Consider this:
+Bad order
+COPY . .
+RUN pip install -r requirements.txt
+If you change any application source file, the COPY . . layer changes, which can invalidate the cache for the following RUN pip install.
+Better order
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+Now if you only change:
+app.py
+Docker can reuse:
+COPY requirements.txt
+      ↓pip install
+      ↓
+CACHE HIT ✅
+
+and only redo:
+COPY . .
+This makes builds much faster.
+You may see this during docker build
+For example:
+[1/5] FROM ubuntu:24.04
+ ---> Using cache
+[2/5] RUN apt update
+ ---> Using cache
+[3/5] COPY requirements.txt .
+ ---> Using cache
+[4/5] RUN pip install -r requirements.txt
+ ---> Using cache
+[5/5] COPY . .
+When you see:
+Using cache
+Docker is saying:
+"I already performed this build step before, and I can reuse the previous result."
+Easy way to remember
+First build
+Dockerfile
+   ↓
+Execute steps
+   ↓
+Store results in cache
+   ↓
+Image
+
+Next build
+Dockerfile
+   ↓
+Check previous results
+   ↓
+Can I reuse this step?
+   ↓
+YES → CACHE HIT → reuse it ⚡
+NO  → execute again
+So Docker build cache = saved results of previous image-build steps that Docker can reuse to avoid repeating work.
 
 
 IQ] How to skip the build cache?
