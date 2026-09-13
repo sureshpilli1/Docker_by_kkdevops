@@ -32,146 +32,163 @@
 Docker Networks
 ===============
 
---> Docker networks are used to establish communication between containers.
+--> Docker networks are used to establish communication between containers,services, and the outside world.
+-->  proper networking ensures that your services are discoverable,secure, and scalable.
 --> If both the containers are same network we can establish the connection.
 --> If you are not mention any network, while creating a container, It will be created in "default bridge network".
+-->Every Docker container gets its own private IP address within the network it belongs to. This
+   IP is:
+   . Unique within the Docker network
+   . Assigned dynamically by Docker's internal DNS system
+   . Can be seen using docker inspect <container>
+   . This IP allows containers to talk directly to each other-even without exposing ports to the host.
 --> By default docker have three networks
-
      1. bridge [default]
      2. host
      3. none
+1. Bridge (Default)
+When you create a container without specifying a network, it goes into the default bridge network.
+Containers can talk to each other using IP, but not by name unless it's a custom bridge.
+docker inspect <cid>
+The container is connected to the default bridge network
+It was assigned a private IP address.
+
+Custom Bridge Network in Docker:
+docker network create -d bridge jio-network
+Create a container named three and attach it to the custom bridge network jio-network
+three can communicate using ***container names*** with other containers in the same jio-network
+Docker provides internal DNS resolution in custom bridge networks
+We want to connect container one (which is in default network) to the custom network jio-network,
+
+2.Host Network
+The Host Network mode allows a container to use the host's networking stack directly
+The container has no separate IP address.
+It shares the host's IP and all its network interfaces.
+Use Cases: This mode is ideal for applications that require high performance and low latency,
+as it eliminates extra overhead from Docker's network layer.
+Limitations: You cannot create custom networks in Host mode, so all containers share the
+same network without isolation.
+
+3.None Network
+The container is fully isolated - no internet, no internal networking.
+No interface is assigned.
+Use this when you don't want the container to communicate with anything - not even localhost.
+You'll see almost no network interfaces inside the container.
+When to Use:
+Security-critical containers (e.g. scanning, secure data processing)
+For manual custom networking setup
+
+What is Docker ECR (Amazon Elastic Container Registry)?
+Amazon ECR (Elastic Container Registry) is a fully managed Docker container registry provided
+by AWS.
+Think of it as a private version of DockerHub, hosted and secured by AWS.
+You can:
+. Store Docker images securely
+. Push images from any Docker server
+. Pull images from anywhere (EC2, ECS, local, etc.)
+How to Push Docker Image to AWS ECR
+Step 1: Install unzip
+Step 2: Install AWS CLI in Linux
+Step 3: Get AWS Access Key & Secret Key
+Step 4: Configure AWS Credentials in Server
+Step 5: Create an ECR Repository
+ 1. Go to AWS Console
+ 2. Search and open ECR (Elastic Container Registry)
+ 3. Click Create Repository
+ 4. Give the ECR repository the name you want to create--> example KKFUNDA
+ 5. Cick Create, You will now see kkfunda repository created.
+Step 6: View Push Commands from the ECR Console
+After creating the repository:
+1. Click on your repo kkfunda
+2. You will see a section called View push commands
+This section gives you all steps you need:
+· For login
+. Tagging the image
+. Pushing the image to the repo
+Step 7: Authenticate Docker with ECR (Temporary Token)
+You'll see a login command to authenticate your Docker client to ECR from AWS. Run it like this:
+. If login is successful, you'll see: Login Succeeded
+. This token is temporary and valid for 12 hours, so repeat this step when needed.
+Step 8: Tag Your Existing Docker Image
+Suppose you already have this image:
+kkeducation12345/javawebapp:1.0.0
+. You cannot push it directly to ECR because the image must follow the ECR repository path
+format. So, we need to tag it properly.
+. In the official push commands (as shown in your image), AWS gives an example like:
+ After the build is completed, tag your image so you can push the image to this repository:
+Step 9: Push Image to ECR
+Now push the newly tagged image:
+The image will now be uploaded and visible in your ECR repository.
+Step 10: Pull the Image from ECR (Test It)
+Let's test by deleting the local image and pulling it from ECR:
+
 
 How to list a docker networks?
-------------------------------
-
 docker network ls
 
 How to see the container is created in which network?
-------------------------------------------------------
-
 docker inspect <cid>
 
-
 How to check both the containers are connected or not?
--------------------------------------------------------
-
 step 0: create a two containers.
-
 step 1: go inside the container one
-
 docker exec -it mavenwebapp /bin/bash
-
 step 2: ping with another container ip
-
 yum update
 yum install -y iputils
-
-
-
-
 ping 172.17.0.3
-
 curl -v telnet://172.17.0.3:8080
-
 NOTE: In default bridge network only ip's will work to connect another container not a container names.
-
 Dis advantage of bridge n/w: If container restarted we are not guarantee to get same IP
 
-
-
-
 IQ] what is the difference between default bridge network and custom bridge network?
-
 Ans: Incase of default bridge network the communication can happen through only IP address. Where as in custom bridge network the communication can happen through the IP address/ container name.
 
-
 How to create a network in docker?
-----------------------------------------
-
 Syntax: docker network create -d <driver> <networkname>
-
 EX: docker network create -d bridge jionetwork
 docker network ls
 
 How IPs are allocating to container?
-------------------------------------
 docker inspect <network-name>
 
 How to remove a unused networks?
---------------------------------
-
 docker system prune or docker network prune  or docker network rm <nwtwork-name>
+Unused networks = Not attached to any container.
+Optional: Remove a Specific Network
+docker network rm airtelnw
+bridge, host, and none (default Docker networks) cannot be removed.
 
 
 How to create a container in network?
--------------------------------------
-
 docker run -d -p 8080:8080 --network jionetwork --name mavenwebapp kkeducation123456/maven-web-app:1.2
-
 docker run -d -p 8081:8080 --network jionetwork --name javawebapp kkeducation123456/maven-web-app:1.2
-
-
 docker exec -it javawebapp bash
 ping mavenwebapp
 
-
-
-=================================================================
-
-
 NOTE: same container might part of another networks also.
-
 How to add that container to another network?
-
 docker network connect  jionetwork javawebappbridge
-
 docker inspect javawebappbridge
-
----------------------------------
 
 How to disconnect the container from network?
-
 docker network disconnect  jionetwork javawebappbridge
-
 docker inspect javawebappbridge
 
-
-===================================================================
-
-
 What is docker host network?
-----------------------------
-
 If we create container in host network, Container will not have an IP address.
-
 NOTE: We can not create more than one container with same container port in the host network.
-
 NOTE: you can not create custom host network like bridge
-
-
 EX: docker run -d --network host --name javawebapp kkeducation123456/maven-web-app:1.2
-    
      docker inspect 1ef68b5d5d80
 
-
-
-=========================================================================================
-
 What is none network?
----------------------
-
 --> If you create containers in none network, Container will not have an IP address.
 --> we can not access these containers from outside or from any containers or internally.
-
-
-
-==========================================================================================
-
 
 NOTE: The scope of the bridge/host/none with the docker server only, To overcome this problem we are using "overlay" network [multi host networks]
 
 IQ] what is overlay network?
-
 Establishing connection between containers in different docker servers.
 
 
