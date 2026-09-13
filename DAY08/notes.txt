@@ -116,6 +116,7 @@ kkeducation12345/javawebapp:1.0.0
 format. So, we need to tag it properly.
 . In the official push commands (as shown in your image), AWS gives an example like:
  After the build is completed, tag your image so you can push the image to this repository:
+docker tag kkfunda: latest 381491819887.dkr.ecr. eu-north-1. amazonaws. com/kkfunda: latest
 Step 9: Push Image to ECR
 Now push the newly tagged image:
 The image will now be uploaded and visible in your ECR repository.
