@@ -105,6 +105,71 @@ docker run -d --name mongo -v /home/ubuntu/spring-boot-mongo-docker-kkfunda/mong
 
 Assignment: run the jenkins as a container and create a job check the volumes concept
 
+
+
+
+Solution 1: Bind Mount for MongoDB
+1.Create Backup Folder on Host
+mkdir mongo-bkp
+We need to bind this host path to the internal MongoDB path /data/db, because that's where
+MongoDB stores its database files inside the container.
+. /data/db is the default data path inside MongoDB container.
+. Your host path: /home/ubuntu/spring-boot-mongo-docker-kkfunda/mongo-bkp
+
+2. Start MongoDB with Bind Mount
+docker run -d --name mongo -v /home/ubuntu/spring-boot-mongo-docker-kkfunda/mongo-bkp:/data/db --network jio -e MONGO_INITDB_ROOT_USERNAME=devdb -e MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+Now that both containers are running:
+. MongoDB is running with a bind mount for persistent data.
+. Spring Boot app is running and connected to MongoDB via environment variables.
+
+3. Add Users Again
+. Open the application in your browser (e.g., http://<your-public-ip>:8080)
+. Try registering some users using the app interface.
+. The app is working and able to register users.
+. Data gets saved to MongoDB inside the container.
+. Since MongoDB is using a bind mount, the data is also saved on your host system:
+
+4.Simulate Crash Again
+docker rm -f mongo
+
+5.Recreate Mongo with Same Mount
+docker run -d -- name mongo -v /home/ubuntu/spring-boot-mongo-docker-kkfunda/mongo-
+bkp:/data/db -- network jio -e MONGO_INITDB_ROOT_USERNAME=devdb -e
+MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+Data Restored!
+
+Solution 2: Docker Volumes
+Step 1: Create Docker Volume
+We first create a Docker-managed volume named jiovolume.
+docker volume create jiovolume
+docker volume ls
+Step 2: Remove Old Mongo Container (If Running)
+docker rm -f mongo
+. This removes the existing Mongo container so that we can run a new one with the volume
+attached.
+Step 3: Run MongoDB with Volume
+Now let's run a new MongoDB container using the volume jiovolume for storing its database files:
+All data now goes into the volume jiovolume.
+docker run -d -- name mongo -v jiovolume:/data/db -- network jio -e
+MONGO_INITDB_ROOT_USERNAME=devdb -e MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+
+Step 4: Register Users in Your Application
+. Register a few users using the web UI. These user records are stored in MongoDB, and
+because we used a volume, the data will be safe even if the container crashes.
+Step 5: Simulate a Crash (Delete Container)
+Now let's assume a crash happens. We'll manually delete the MongoDB container:
+docker rm -f mongo
+Remember: containers are removed, but volumes are not affected.
+Step 6: Recreate Mongo Container Using the Same Volume
+Now run MongoDB again, using the same volume as before:
+docker run -d -- name mongo -v jiovolume:/data/db -- network jio -e
+MONGO_INITDB_ROOT_USERNAME=devdb -e MONGO_INITDB_ROOT_PASSWORD=dev@123 mongo
+Now open your application again and check all the user data is still there!
+. Because the data was not stored inside the container, but inside the Docker volume
+(jiovolume), which lives outside the container. Even after deleting and recreating the
+container, the data persisted.
+
+
 IQ] Why we are going for Docker volumes insted of bind mount?
 we taken backup for every container into different folders, There is no central place for backup, so we are going for docker volume concept.
 IQ] How can you migrate docker from one server to another server?
